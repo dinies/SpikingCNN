@@ -4,6 +4,22 @@ Build a spiking convolutional neural network in tensorflow for image recognitioo
 
 
 
+
+
+How to run the code ?
+ - tests can be run with the following command: python -m unittest discover -p '\*Test.py' tests/
+
+
+
+
+
+
+
+
+
+
+
+
 Guide to set up the environment,
 tested on linux 18.04LTS
 
