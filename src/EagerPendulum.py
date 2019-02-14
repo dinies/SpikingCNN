@@ -1,6 +1,7 @@
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
+import pdb
 
 tf.enable_eager_execution()
 
@@ -10,7 +11,7 @@ class EagerPendulum( object):
             initial_state = [ 0.0,0.0]
             ):
 
-        self.state= initial_state
+        self.state= tf.contrib.eager.Variable( initial_state )
         self.m= 4.0
         self.l= 7.0
         self.g= 9.81
@@ -22,6 +23,16 @@ class EagerPendulum( object):
         self.thetaData =[]
         self.thetaDotData =[]
 
+    def boxplus( self, rad_angle_alfa, rad_angle_beta):
+        c_a, s_a= np.cos(rad_angle_alfa), np.sin(rad_angle_alfa) 
+
+        c_b, s_b= np.cos(rad_angle_beta), np.sin(rad_angle_beta) 
+
+        R_alfa = np.array([[ c_a, -s_a], [s_a, c_a ]])
+        R_beta = np.array([[ c_b, -s_b], [s_b, c_b ]])
+        R = np.matmul( R_alfa , R_beta)
+        return np.arctan2( R[1][0], R[0][0])
+
 
 
     def evolution( self, u ):
@@ -32,7 +43,14 @@ class EagerPendulum( object):
         ]
         dt_vec = [ self.dt , self.dt ]
         increment_q = tf.multiply( dq, dt_vec)
-        self.state = tf.add( self.state, increment_q )
+
+        new_state = tf.contrib.eager.Variable(
+                [
+                    self.boxplus( self.state[0], increment_q[0].numpy()),
+                    self.state[1] + increment_q[1]
+                ])
+
+        tf.assign( self.state, new_state)
 
     def execution_loop(self):
 
@@ -58,6 +76,6 @@ class EagerPendulum( object):
         
 
 if __name__ == '__main__':
-    p= EagerPendulum( [0.8,0.0])
+    p= EagerPendulum( [1.5,0.0])
     p.execution_loop()
  
