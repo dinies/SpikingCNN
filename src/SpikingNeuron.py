@@ -19,27 +19,28 @@ class SpikingNeuron(object):
         self.input_channels = len( spike_train_list)
         self.Potential = tf.contrib.eager.Variable( P_initial)
         self.oldPotential = tf.contrib.eager.Variable( P_initial)
-        self.Decay = tf.constant( 0.1)
+        self.Decay = tf.constant( 2.0)
         self.P_data=[]
         self.spikes_data= []
-        self.threshold_P = 50.0
+        self.threshold_P = 20.0
         self.W = self.initialize_weigths(len(spike_train_list), connections_type )
 
 
     def initialize_weigths( self, connections_num, connections_type):
-        excitatory_synapse = 0.8
-        inhibitory_synapse = -0.5
+        excitatory_synapse = 1.2
+        inhibitory_synapse = -0.6
 
         w = []
         if connections_type:
             for i in range(connections_num):
+
                 if connections_type[i] == 1:
                     w.append( excitatory_synapse )
                 else:
                     w.append( inhibitory_synapse )
         else:
             for i in range(connections_num):
-                if numpy.random.rand() >= 0.35:
+                if numpy.random.rand() >= 0.45:
                     w.append( excitatory_synapse )
                 else:
                     w.append( inhibitory_synapse )
@@ -67,8 +68,9 @@ class SpikingNeuron(object):
         tf.assign_add( sum_term, self.oldPotential)
         tf.assign( self.Potential , sum_term)
 
+        self.P_data.append( self.Potential.numpy())
         if self.Potential.numpy() > self.threshold_P:
-            tf.assign( self.Potential, 0)
+            tf.assign( self.Potential, self.rest_potential)
             output = 1
         elif self.Potential.numpy() < self.rest_potential:
             tf.assign( self.Potential, self.rest_potential)
@@ -85,7 +87,6 @@ class SpikingNeuron(object):
         while self.spike_train_list and self.spike_train_list[0].shape[0] > 0 :
             output = self.forward_pass()
             self.spikes_data.append( output)
-            self.P_data.append( self.Potential.numpy())
 
         self.plot_data()
             
@@ -107,7 +108,7 @@ if __name__ == '__main__':
     trains = []
 
     for i in range(num_trains) : 
-        spike_train = numpy.random.randint( 0, 2, 50 )
+        spike_train = numpy.random.poisson( size = 350 )
         trains.append( spike_train)
 
 
