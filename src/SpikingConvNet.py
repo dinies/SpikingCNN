@@ -30,17 +30,10 @@ class SpikingConvNet(object):
             Layer.ConvolutionalLayer(padding, strides_conv, [5,5,20,20], 60, [1,6,9,20])
             ]
      
-    #   Move in the layer class
-    def resetOldPotentials( self):
-        for potentials in self.oldPotentials:
-            potentials = np.zeros( potentials.shape )
-
-
     def evolutionLoop( self):
 
         spikeTrains = self.DoG.getSpikeTrains()
         counter = 0
-
            
         for st in spikeTrains:
                
