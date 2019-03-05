@@ -22,10 +22,8 @@ class DoGwrapper(object):
             
 
     def obtainTemperatureMap(self,spike_train):
-
         tempMap = np.zeros(spike_train.shape[0:2])
         depth = spike_train.shape[3]
-
         i = 0
         for floor in spike_train:
             j = 0
@@ -33,17 +31,12 @@ class DoGwrapper(object):
                 max_index= -1
                 k = 0
                 for spike in trainEncaps[0]:
-
                     if spike == 1 :
                         max_index= k
                     k += 1
-
-
                 if max_index >= 0 :
-
                     temperature = 1 - (depth - max_index)/depth
                     tempMap[i][j] = temperature
-
                 j += 1
             i +=1
         return tempMap

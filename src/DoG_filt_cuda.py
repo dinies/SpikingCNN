@@ -3,7 +3,7 @@ from scipy.ndimage import correlate
 from math import ceil
 from PIL import Image
 from PIL.Image import ANTIALIAS
-from numba import *
+from numba import jit
 import pdb
 
 
