@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 
 
 class DoGwrapper(object):
-    def __init__(self, imgPath_list):
+    def __init__(self, imgPath_list, total_time = 15):
         self.num_layers = 6
-        self.total_time = 15
+        self.total_time = total_time
         
         self.DoG_params = {'img_size': (250, 160),
                 'DoG_size': 7, 'std1': 1., 'std2': 2.} 

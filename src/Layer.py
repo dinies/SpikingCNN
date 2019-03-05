@@ -18,14 +18,25 @@ class Layer( ABC):
 
 class ConvolutionalLayer(Layer):
 
-    def __init__(self, padding_type, stride, filter_dim, threshold_potential, expected_output_dim):
+    def __init__(self, padding_type, stride, filter_dim, threshold_potential, expected_input_dim, expected_output_dim, encoding_t):
         super().__init__( padding_type, stride, expected_output_dim)
         self.filter_dim = filter_dim
         self.threshold_potential = threshold_potential
         self.weights = np.ones( filter_dim)
         self.oldPotentials = tfe.Variable( np.zeros( expected_output_dim ))
         self.K_inh = np.ones(( expected_output_dim[1], expected_output_dim[2])).astype(np.uint8)
+        self.encoding_t = encoding_t
+        self.spikes_presyn = np.zeros(  expected_input_dim[1:4]+[self.encoding_t])
+        self.spikes_postsyn = np.zeros(  expected_output_dim[1:4]+[self.encoding_t])
+        self.curr_iteration = 0
+        self.expected_input_dim = expected_input_dim
 
+
+    def resetStoredData( self):
+        self.curr_iteration = 0
+        self.spikes_presyn = np.zeros(  self.expected_input_dim[1:4]+[self.encoding_t])
+        self.spikes_postsyn = np.zeros(  self.expected_output_dim[1:4]+[self.encoding_t])
+        
     def resetOldPotentials( self):
         self.oldPotentials = tfe.Variable( np.zeros( self.expected_output_dim ))
 
@@ -52,6 +63,11 @@ class ConvolutionalLayer(Layer):
         
         S, K_inh = self.lateral_inh_CPU( currSpikesNp, newPotentialsNp, self.K_inh)
         self.K_inh = K_inh
+
+        self.spikes_presyn[:,:,:,self.curr_iteration] = input_to_layer
+        self.spikes_postsyn[:,:,:,self.curr_iteration] = S
+
+        self.STDP_learning()
                     
         currSpikes = tfe.Variable( S )
         newPotentials = tfe.Variable( newPotentialsNp )
@@ -59,6 +75,32 @@ class ConvolutionalLayer(Layer):
         self.oldPotentials.assign( newPotentials)
 
         return currSpikes
+
+    def computeDeconvolutionIndexes( self, row, column):
+        top_left = [ row, column]
+        bottom_right = [ row + self.filter_dim[0]-1, column + self.filter_dim[1]-1]
+        return top_left, bottom_right
+        
+    def STDP_learning( self):
+        for row in range(self.spikes_postsyn.shape[0]):
+            for column in range(self.spikes_postsyn.shape[1]):
+                for channel_output in range(self.spikes_postsyn.shape[2]):
+                    if self.spikes_postsyn[row,column,channel_output,self.curr_iteration] == 1:
+                        top_left, bottom_right = self.computeDeconvolutionIndexes(row, column)
+                        for m in range(top_left[0], bottom_right[0]+1):
+                            for n in range(top_left[1], bottom_right[1]+1):
+                                for channel_input in range(self.spikes_postsyn.shape[3]):
+                                    # strenghten synapsis 
+
+                                    for t_input in range( self.curr_iteration+1):
+                                        presyn_neuron = self.spikes_presyn[ m, n,channel_input, t_input]
+                                        if presyn_neuron ==1:
+                                            self.weights[ m , n, channel_input] += self.a_plus* self.weights[ m , n, channel_input] *(1- self.weights[ m , n, channel_input])
+
+                # weaken synapsis  this goes in a second cycle maybe starting from there
+                for t_output in range( self.curr_iteration+1):
+ 
+
 
 
     # BEGIN Function borrowed from the paper autors
