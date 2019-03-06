@@ -2,6 +2,7 @@ from abc import ABC,abstractmethod
 import tensorflow as tf
 import tensorflow.contrib.eager as tfe
 import numpy as np
+import math
 from numba import jit
 
 class Layer( ABC):
@@ -15,6 +16,11 @@ class Layer( ABC):
     def makeOperation( self, input_to_layer):
         pass
 
+    @abstractmethod
+    def resetLayer( self):
+        pass
+
+
 
 class ConvolutionalLayer(Layer):
 
@@ -26,22 +32,30 @@ class ConvolutionalLayer(Layer):
         self.oldPotentials = tfe.Variable( np.zeros( expected_output_dim ))
         self.K_inh = np.ones(( expected_output_dim[1], expected_output_dim[2])).astype(np.uint8)
         self.encoding_t = encoding_t
-        self.spikes_presyn = np.zeros(  expected_input_dim[1:4]+[self.encoding_t])
-        self.spikes_postsyn = np.zeros(  expected_output_dim[1:4]+[self.encoding_t])
+        self.spikes_presyn = np.zeros(  expected_input_dim +[self.encoding_t])
+        self.spikes_postsyn = np.zeros(  expected_output_dim +[self.encoding_t])
         self.curr_iteration = 0
         self.expected_input_dim = expected_input_dim
+        self.a_plus = 0.15
+        self.a_minus = 0.1
+        self.decay_rate = 0.01   
 
 
     def resetStoredData( self):
         self.curr_iteration = 0
-        self.spikes_presyn = np.zeros(  self.expected_input_dim[1:4]+[self.encoding_t])
-        self.spikes_postsyn = np.zeros(  self.expected_output_dim[1:4]+[self.encoding_t])
+        self.spikes_presyn = np.zeros(  self.expected_input_dim +[self.encoding_t])
+        self.spikes_postsyn = np.zeros(  self.expected_output_dim +[self.encoding_t])
         
     def resetOldPotentials( self):
         self.oldPotentials = tfe.Variable( np.zeros( self.expected_output_dim ))
 
     def resetInhibition( self):
         self.K_inh = np.ones(( self.expected_output_dim[1], self.expected_output_dim[2])).astype(np.uint8)
+
+    def resetLayer(self):
+        self.resetOldPotentials()
+        self.resetInhibition()
+        self.resetStoredData()
 
 
     def makeOperation( self, input_to_layer):
@@ -64,8 +78,8 @@ class ConvolutionalLayer(Layer):
         S, K_inh = self.lateral_inh_CPU( currSpikesNp, newPotentialsNp, self.K_inh)
         self.K_inh = K_inh
 
-        self.spikes_presyn[:,:,:,self.curr_iteration] = input_to_layer
-        self.spikes_postsyn[:,:,:,self.curr_iteration] = S
+        self.spikes_presyn[:,:,:,:,self.curr_iteration] = input_to_layer
+        self.spikes_postsyn[:,:,:,:,self.curr_iteration] = S
 
         self.STDP_learning()
                     
@@ -74,32 +88,75 @@ class ConvolutionalLayer(Layer):
 
         self.oldPotentials.assign( newPotentials)
 
+        self.curr_iteration +=1
+
         return currSpikes
 
-    def computeDeconvolutionIndexes( self, row, column):
+    # Deprecated
+    def computeDeconvolutionIndexesValidPadding( self, row, column):
         top_left = [ row, column]
         bottom_right = [ row + self.filter_dim[0]-1, column + self.filter_dim[1]-1]
         return top_left, bottom_right
-        
-    def STDP_learning( self):
-        for row in range(self.spikes_postsyn.shape[0]):
-            for column in range(self.spikes_postsyn.shape[1]):
-                for channel_output in range(self.spikes_postsyn.shape[2]):
-                    if self.spikes_postsyn[row,column,channel_output,self.curr_iteration] == 1:
-                        top_left, bottom_right = self.computeDeconvolutionIndexes(row, column)
-                        for m in range(top_left[0], bottom_right[0]+1):
-                            for n in range(top_left[1], bottom_right[1]+1):
-                                for channel_input in range(self.spikes_postsyn.shape[3]):
-                                    # strenghten synapsis 
-
-                                    for t_input in range( self.curr_iteration+1):
-                                        presyn_neuron = self.spikes_presyn[ m, n,channel_input, t_input]
-                                        if presyn_neuron ==1:
-                                            self.weights[ m , n, channel_input] += self.a_plus* self.weights[ m , n, channel_input] *(1- self.weights[ m , n, channel_input])
-
-                # weaken synapsis  this goes in a second cycle maybe starting from there
-                for t_output in range( self.curr_iteration+1):
  
+    # Given a coordinate of a square of the output layer of a convolution
+    # returns a list of quadruples of the form :
+    # [ input row, input column, weight row, weight column ] 
+    def computeDeconvolutionIndexesSamePaddingOddFilterDim( self, row, column):
+
+        indexes_list = []
+        offset_r = math.ceil( (self.filter_dim[0]-1)/2)
+        offset_c = math.ceil( (self.filter_dim[1]-1)/2)
+        i = 0
+        j = 0
+        for r in range( row - offset_r, row + offset_r+1):
+            for c in range( column - offset_c, column + offset_c+1):
+                if 0 < r < self.expected_input_dim[1] and \
+                0 < c < self.expected_input_dim[2] : 
+                    indexes_list.append( [ r, c, i, j] )
+            j += 1
+        i +=1
+
+        return indexes_list 
+    
+               
+    def STDP_learning( self):
+        [ _ , rows, columns, channels_out, _] = self.spikes_postsyn.shape
+        channels_in = self.spikes_presyn.shape[3]
+        counter_strenghtened = 0
+        counter_weakened = 0
+
+        for row in range(rows):
+            for column in range(columns):
+                for channel_output in range(channels_out):
+                    indexes = self.computeDeconvolutionIndexesSamePaddingOddFilterDim(row, column)
+                    if self.spikes_postsyn[0,row,column,channel_output,self.curr_iteration] == 1:
+                        for [in_row , in_col , w_row, w_col] in indexes:   
+                            for channel_input in range(channels_in):
+                                # strenghten synapsis 
+                                for t_input in range( self.curr_iteration+1):
+                                    presyn_neuron = self.spikes_presyn[0,in_row,in_col,channel_input,t_input]
+                                    if presyn_neuron == 1:
+                                        counter_strenghtened +=1
+                                        oldWeight = self.weights[w_row,w_col,channel_input,channel_output] 
+                                        self.weights[w_row,w_col,channel_input,channel_output ] += \
+                                        self.a_plus * oldWeight * (1- oldWeight)
+
+                    # weaken synapsis 
+                    for t_output in range( self.curr_iteration):
+                        if self.spikes_postsyn[0,row,column,channel_output,t_output] == 1:
+                            for [in_row , in_col , w_row, w_col] in indexes:   
+                                for channel_in in range(channels_in):
+                                    presyn_neuron = self.spikes_presyn[0,in_row,in_col,channel_in,self.curr_iteration]
+                                    if presyn_neuron == 1:
+                                        counter_weakened +=1
+                                        oldWeight = self.weights[w_row,w_col,channel_in,channel_output] 
+                                        self.weights[w_row,w_col,channel_in,channel_output] += \
+                                        self.a_minus * oldWeight * (1- oldWeight)
+        np.add( self.weights, self.decay_rate)
+        
+        print( "Strenghtened syn:" +str(counter_strenghtened))
+        print( "Weakened syn:" +str(counter_weakened))
+
 
 
 
@@ -142,3 +199,7 @@ class PoolingLayer(Layer):
         out_pool= tf.nn.pool(input_to_layer,self.window_shape,self.pooling_type,self.padding_type,strides = self.stride)
 
         return out_pool
+
+    def resetLayer(self):
+        pass
+        
