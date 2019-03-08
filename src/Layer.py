@@ -20,6 +20,19 @@ class Layer( ABC):
     def resetLayer( self):
         pass
 
+    @abstractmethod
+    def createWeights( self):
+        pass
+
+    @abstractmethod
+    def saveWeights( self, path, index):
+        pass
+
+    @abstractmethod
+    def loadWeights( self, path, index):
+        pass
+
+
 
 
 class ConvolutionalLayer(Layer):
@@ -28,7 +41,7 @@ class ConvolutionalLayer(Layer):
         super().__init__( padding_type, stride, expected_output_dim)
         self.filter_dim = filter_dim
         self.threshold_potential = threshold_potential
-        self.weights = np.ones( filter_dim)
+        self.weights = None
         self.oldPotentials = tfe.Variable( np.zeros( expected_output_dim ))
         self.K_inh = np.ones(( expected_output_dim[1], expected_output_dim[2])).astype(np.uint8)
         self.encoding_t = encoding_t
@@ -36,9 +49,9 @@ class ConvolutionalLayer(Layer):
         self.spikes_postsyn = np.zeros(  expected_output_dim +[self.encoding_t])
         self.curr_iteration = 0
         self.expected_input_dim = expected_input_dim
-        self.a_plus = 0.15
-        self.a_minus = 0.1
-        self.decay_rate = 0.01   
+        self.a_plus = 0.02
+        self.a_minus = 0.01
+        self.decay_rate = 0.001   
 
 
     def resetStoredData( self):
@@ -57,6 +70,14 @@ class ConvolutionalLayer(Layer):
         self.resetInhibition()
         self.resetStoredData()
 
+    def createWeights(self):
+        self.weights = np.random.random_sample(self.filter_dim)
+
+    def loadWeights(self,path,layer_index):
+        self.weights = np.load( path + 'weight_'+ layer_index+ '.npy')
+
+    def saveWeights(self,path,layer_index):
+        np.save( path + 'weight_'+ str(layer_index)+ '.npy', self.weights)
 
     def makeOperation( self, input_to_layer):
         input_filter = tfe.Variable( self.weights )
@@ -201,5 +222,14 @@ class PoolingLayer(Layer):
         return out_pool
 
     def resetLayer(self):
+        pass
+
+    def createWeights(self):
+        pass
+
+    def loadWeights(self,path,layer_index):
+        pass
+
+    def saveWeights(self,path,layer_index):
         pass
         
