@@ -37,7 +37,7 @@ class Layer( ABC):
 
 class ConvolutionalLayer(Layer):
 
-    def __init__(self, padding_type, stride, filter_dim, threshold_potential, expected_input_dim, expected_output_dim, encoding_t):
+    def __init__(self, padding_type, stride, filter_dim, threshold_potential, expected_input_dim, expected_output_dim, encoding_t, a_plus = 0.02, a_minus = 0.01, a_decay = 0.001, stdp_flag = True):
         super().__init__( padding_type, stride, expected_output_dim)
         self.filter_dim = filter_dim
         self.threshold_potential = threshold_potential
@@ -49,9 +49,11 @@ class ConvolutionalLayer(Layer):
         self.spikes_postsyn = np.zeros(  expected_output_dim +[self.encoding_t])
         self.curr_iteration = 0
         self.expected_input_dim = expected_input_dim
-        self.a_plus = 0.02
-        self.a_minus = 0.01
-        self.decay_rate = 0.001   
+        self.a_plus = a_plus
+        self.a_minus = a_minus
+        self.a_decay = a_decay
+        self.stdp_flag = stdp_flag
+
 
 
     def resetStoredData( self):
@@ -79,7 +81,7 @@ class ConvolutionalLayer(Layer):
     def saveWeights(self,path,layer_index):
         np.save( path + 'weight_'+ str(layer_index)+ '.npy', self.weights)
 
-    def makeOperation( self, input_to_layer):
+    def makeOperation( self, input_to_layer ):
         input_filter = tfe.Variable( self.weights )
         out_conv = tf.nn.conv2d(input_to_layer,input_filter,self.stride,self.padding_type)
 
@@ -102,7 +104,8 @@ class ConvolutionalLayer(Layer):
         self.spikes_presyn[:,:,:,:,self.curr_iteration] = input_to_layer
         self.spikes_postsyn[:,:,:,:,self.curr_iteration] = S
 
-        self.STDP_learning()
+        if self.stdp_flag:
+            self.STDP_learning()
                     
         currSpikes = tfe.Variable( S )
         newPotentials = tfe.Variable( newPotentialsNp )
@@ -173,7 +176,7 @@ class ConvolutionalLayer(Layer):
                                         oldWeight = self.weights[w_row,w_col,channel_in,channel_output] 
                                         self.weights[w_row,w_col,channel_in,channel_output] += \
                                         self.a_minus * oldWeight * (1- oldWeight)
-        np.add( self.weights, self.decay_rate)
+        np.add( self.weights, self.a_decay)
         
         print( "Strenghtened syn:" +str(counter_strenghtened))
         print( "Weakened syn:" +str(counter_weakened))

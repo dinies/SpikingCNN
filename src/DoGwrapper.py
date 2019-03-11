@@ -5,21 +5,40 @@ import matplotlib.pyplot as plt
 
 
 class DoGwrapper(object):
-    def __init__(self, imgDict_list, total_time = 15):
+    def __init__(self, img_dict, total_time = 15):
         self.num_layers = 6
         self.total_time = total_time
         
         self.DoG_params = {'img_size': (250, 160),
                 'DoG_size': 7, 'std1': 1., 'std2': 2.} 
-        self.imgDict_list= imgDict_list
+        self.img_dict = img_dict
 
     def getSpikeTrains( self):
-        spikeTrains = []
-        for img_dict in self.imgDict_list:
-            spikeTrains.append( self.applyDoGFilter( img_dict['path']))
-
-        return spikeTrains, img_dict['label']
+        spikeTrain = self.applyDoGFilter( self.img_dict['path'])
+        return spikeTrain
             
+
+    def applyDoGFilter(self, imgPath):
+        img_size = self.DoG_params['img_size']
+
+        filt = DoG(
+                self.DoG_params['DoG_size'],
+                self.DoG_params['std1'],
+                self.DoG_params['std2'])
+
+        st = DoG_filter(
+            imgPath, filt,
+            img_size, self.total_time,
+            self.num_layers)
+
+        return st
+
+
+
+
+
+
+
 
 
 
@@ -51,23 +70,6 @@ class DoGwrapper(object):
                 j += 1
             i +=1
         return tempMap
-
-    def applyDoGFilter(self, imgPath):
-        img_size = self.DoG_params['img_size']
-
-        filt = DoG(
-                self.DoG_params['DoG_size'],
-                self.DoG_params['std1'],
-                self.DoG_params['std2'])
-
-        st = DoG_filter(
-            imgPath, filt,
-            img_size, self.total_time,
-            self.num_layers)
-
-        return st
-
-
 
 
     def testWithOneImg(self):

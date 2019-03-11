@@ -5,50 +5,53 @@ import Layer
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.random
+import random
 import time
 from os.path import dirname, realpath
 import pdb
 import csv
 import math
-
+import os
 
 tf.enable_eager_execution()
 
 class SpikingConvNet(object):
-    def __init__(self, start_from_scratch= True, classifierDatasetToAppend = None):
+    def __init__(self,  phase, start_from_scratch= False ):
         encoding_t = 15
+        self.encoding_t = encoding_t
+        self.phase = phase
         path = dirname(dirname(realpath(__file__)))
-        path_img1 = path + '/datasets/TrainingSet/Face/image_0297.jpg'
-        dictImg1 = {
-                'path':path_img1,
-                'label':'Face'
-                }
-        path_img2 = path + '/datasets/TrainingSet/Face/image_0264.jpg'
-        self.DoG = DoGwrapper.DoGwrapper(  [ dictImg1  ], encoding_t )
+        self.path_to_img_folder = path + '/datasets/'+ phase + 'Set/'
+        classifier_dataset_path = path + '/datasets/ClassifierSet/'
+        self.classifier_training_dataset_path = classifier_dataset_path +'TrainingData.csv'
+        self.classifier_testing_dataset_path = classifier_dataset_path +'TestingData.csv'
         self.start_from_scratch = start_from_scratch
-        self.pathWeights = path + '/weights/'
-        if start_from_scratch:
-            self.classifierDataset_path = path + '/datasets/ClassifierSet/Data'+\
-                time.strftime("%d_%m_%Y_%H_%M_%S")+ '.csv'
-        else:
-            self.classifierDataset_path = path + '/datasets/ClassifierSet/'+\
-                    classifierDatasetToAppend
 
+        self.pathWeights = path + '/weights/'
 
         strides_conv= [1,1,1,1]
         padding= "SAME"
         pooling_type= "MAX"
-       
+
+        stdp_flag = phase == 'Learning'
+
         self.layers = [
             Layer.ConvolutionalLayer(padding, strides_conv,
-                [5,5,1,4],10., [1,160,250,1], [1,160,250,4],encoding_t),
+                [5,5,1,4],10., [1,160,250,1], [1,160,250,4],
+                encoding_t,.004,.003,.0001, stdp_flag ),
             Layer.PoolingLayer(padding, [6,6], [7,7], pooling_type, [1,27,42,4]),
             Layer.ConvolutionalLayer(padding,strides_conv,
-                [17,17,4,20], 50., [1,27,42,4], [1,27,42,20],encoding_t),
+                [17,17,4,20], 50., [1,27,42,4], [1,27,42,20],
+                encoding_t,.0004,.0003,.00001, stdp_flag),
             Layer.PoolingLayer(padding, [5,5], [5,5], pooling_type, [1,6,9,20]),
             Layer.ConvolutionalLayer(padding, strides_conv,
-                [5,5,20,20], math.inf , [1,6,9,20], [1,6,9,20],encoding_t)
+                [5,5,20,20], math.inf , [1,6,9,20], [1,6,9,20],
+                encoding_t,.0004,.0003,.00001, stdp_flag)
             ]
+
+        if start_from_scratch:
+            self.writeFeatureNamesinDataset( classifier_dataset_path +'TrainingData.csv')
+            self.writeFeatureNamesinDataset( classifier_dataset_path +'TestingData.csv')
 
     def lastMaxPooling( self, V, tensor_dim):
         [_,rows,columns,channels] = tensor_dim
@@ -57,25 +60,71 @@ class SpikingConvNet(object):
 
         return features
 
-    def writeFeatureNamesinDataset(self):
-        with open(self.classifierDataset_path, 'a') as csvfile:
+    def writeFeatureNamesinDataset(self,path):
+        with open(path, 'a') as csvfile:
             fw=csv.writer(csvfile,delimiter=',',quotechar='|',quoting=csv.QUOTE_MINIMAL)
             feature_names = ['f1','f2','f3','f4','f5','f6','f7','f8','f9','f10',
                     'f11','f12','f13','f14','f15','f16','f17','f18','f19','f20','label']
             fw.writerow(feature_names)
 
     def writeFeaturesIntoDataset( self, features, label):
-        with open(self.classifierDataset_path, 'a') as csvfile:
+        if self.phase == 'Training':
+            dataset_path = self.classifier_training_dataset_path
+        else:
+            dataset_path = self.classifier_testing_dataset_path
+
+        with open(dataset_path , 'a') as csvfile:
             fw=csv.writer(csvfile,delimiter=',',quotechar='|',quoting=csv.QUOTE_MINIMAL)
             feature_list =[]
             for f in features:
                 feature_list.append( str(f))
             feature_list.append( label)
             fw.writerow( feature_list)
+
+    def getImgPaths( self, number_of_images ):
+        img_dicts = [] 
+        path_to_faces = self.path_to_img_folder+'FaceToDo/'
+        path_to_motors = self.path_to_img_folder+'MotorToDo/'
+
+        list_of_face_imgs = os.listdir( path_to_faces)
+        list_of_motor_imgs = os.listdir( path_to_motors ) 
+        for i in range(number_of_images):
+            if numpy.random.randint(2) == 1:
+                img_name = random.choice(list_of_face_imgs)
+                dictImg = {
+                    'path': path_to_faces + img_name ,
+                    'name': img_name,
+                    'label':'Face'
+                }                               
+
+            else:
+
+                img_name = random.choice(list_of_motor_imgs)
+                dictImg = {
+                    'path': path_to_motors + img_name ,
+                    'name': img_name,
+                    'label':'Motor'
+                }                               
+
+            img_dicts.append( dictImg)
+
+        return  img_dicts
      
-    def evolutionLoop( self):
+
+    def moveImgInDoneFolder( self, img_dict):
+        old_path = img_dict['path']
+        if img_dict['label'] == 'Face':
+            new_path = self.path_to_img_folder +'FaceDone/' + img_dict['name']
+        else:
+            new_path = self.path_to_img_folder +'MotorDone/' + img_dict['name']
+
+        os.rename( old_path, new_path)
+
+
+
+    def evolutionLoop( self, target_number_of_images ):
+
         if self.start_from_scratch:
-            self.writeFeatureNamesinDataset()
             for layer in self.layers:
                 layer.createWeights()
         else:
@@ -84,45 +133,48 @@ class SpikingConvNet(object):
                 layer.loadWeights( self.pathWeights, index )
                 index+=1
 
-        spikeTrains, label = self.DoG.getSpikeTrains()
+
+        img_dicts = self.getImgPaths( target_number_of_images)
+        for img in img_dicts:
+            DoG = DoGwrapper.DoGwrapper( img ,self.encoding_t )
+            st = DoG.getSpikeTrains()
            
-        # for st in spikeTrains:
-        st = spikeTrains[0]
                
-        for i in range(st.shape[2]):
-            dogSlice = st[:,:,i]
-            reshapedDogSlice=dogSlice.reshape([1,dogSlice.shape[0],dogSlice.shape[1],1])
-            curr_input = tf.constant( reshapedDogSlice)
+            for i in range(st.shape[2]):
+                dogSlice = st[:,:,i]
+                reshapedDogSlice=dogSlice.reshape([1,dogSlice.shape[0],dogSlice.shape[1],1])
+                curr_input = tf.constant( reshapedDogSlice)
                
-            for layer in self.layers:
-                # In and out from the layer class are passed tf variables
-                start = time.time()
-                curr_input= layer.makeOperation( curr_input)
-                end = time.time()
+                for layer in self.layers:
+                    # In and out from the layer class are passed tf variables
+                    start = time.time()
+                    curr_input= layer.makeOperation( curr_input)
+                    end = time.time()
                               
-                print( curr_input.shape)
-                print( end- start)
-                print("\n")
+                    print( curr_input.shape)
+                    print( end- start)
+                    print("\n")
 
-                # print( currSpikes_1layer[:,:,0])
+            if self.phase != 'Learning':
+                features = self.lastMaxPooling( self.layers[-1].oldPotentials, self.layers[-1].expected_output_dim )
+                self.writeFeaturesIntoDataset( features, img['label'])
 
- 
-        features = self.lastMaxPooling( self.layers[-1].oldPotentials, self.layers[-1].expected_output_dim )
+            index = 0
+            for layer in self.layers:
+                layer.saveWeights(self.pathWeights, index)
+                layer.resetLayer()
+                index +=1
 
-        self.writeFeaturesIntoDataset( features,label)
-        index = 0
-        for layer in self.layers:
-            layer.saveWeights(self.pathWeights, index)
-            layer.resetLayer()
-            index +=1
+            self.moveImgInDoneFolder( img )
 
 
 
 if __name__ == '__main__':
-    start_from_scratch_FLAG = False
-    dataset_name = "Data08_03_2019_12_41_38.csv"
-
-    scn= SpikingConvNet()
-  #   scn= SpikingConvNet( start_from_scratch_FLAG, dataset_name)
-    scn.evolutionLoop()
+    start_from_scratch = True
+    number_of_images = 5
+    phase = "Learning"
+    #  phase = "Training"
+    #  phase = "Testing"
+    scn= SpikingConvNet( phase)
+    scn.evolutionLoop( number_of_images)
  
