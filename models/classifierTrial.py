@@ -8,13 +8,15 @@ tf.enable_eager_execution()
 
 
 sub_path = dirname(dirname(realpath(__file__)))
-pathTrainDataset = sub_path + '/models/datasets/'+'dummyTrain.csv'
+pathTrainDataset = sub_path + '/datasets/ClassifierSet/TrainingData.csv'
+# pathTrainDataset = sub_path + '/models/datasets/'+'dummyTrain.csv'
 train = pd.read_csv( pathTrainDataset)
-train_X, train_y = train, train.pop('labels')
+train_X, train_y = train, train.pop('label')
 
-pathTestDataset = sub_path + '/models/datasets/'+'dummyTest.csv'
+pathTestDataset = sub_path + '/datasets/ClassifierSet/TestingData.csv'
+# pathTestDataset = sub_path + '/models/datasets/'+'dummyTest.csv'
 test= pd.read_csv( pathTestDataset)
-test_X, test_y = test, test.pop('labels')
+test_X, test_y = test, test.pop('label')
 
 
 def input_fun( features, labels, batch_size,repeat_count ):

@@ -32,6 +32,9 @@ class Layer( ABC):
     def loadWeights( self, path, index):
         pass
 
+    @abstractmethod
+    def getSynapseChangeInfo(self):
+        pass
 
 
 
@@ -53,6 +56,9 @@ class ConvolutionalLayer(Layer):
         self.a_minus = a_minus
         self.a_decay = a_decay
         self.stdp_flag = stdp_flag
+        self.counter_strenghtened =0
+        self.counter_weakened =0
+
 
 
 
@@ -76,10 +82,13 @@ class ConvolutionalLayer(Layer):
         self.weights = np.random.random_sample(self.filter_dim)
 
     def loadWeights(self,path,layer_index):
-        self.weights = np.load( path + 'weight_'+ layer_index+ '.npy')
+        self.weights = np.load( path + 'weight_'+ str(layer_index)+ '.npy')
 
     def saveWeights(self,path,layer_index):
         np.save( path + 'weight_'+ str(layer_index)+ '.npy', self.weights)
+
+    def getSynapseChangeInfo(self):
+        return self.counter_strenghtened, self.counter_weakened
 
     def makeOperation( self, input_to_layer ):
         input_filter = tfe.Variable( self.weights )
@@ -146,8 +155,8 @@ class ConvolutionalLayer(Layer):
     def STDP_learning( self):
         [ _ , rows, columns, channels_out, _] = self.spikes_postsyn.shape
         channels_in = self.spikes_presyn.shape[3]
-        counter_strenghtened = 0
-        counter_weakened = 0
+        self.counter_strenghtened = 0
+        self.counter_weakened = 0
 
         for row in range(rows):
             for column in range(columns):
@@ -160,7 +169,7 @@ class ConvolutionalLayer(Layer):
                                 for t_input in range( self.curr_iteration+1):
                                     presyn_neuron = self.spikes_presyn[0,in_row,in_col,channel_input,t_input]
                                     if presyn_neuron == 1:
-                                        counter_strenghtened +=1
+                                        self.counter_strenghtened +=1
                                         oldWeight = self.weights[w_row,w_col,channel_input,channel_output] 
                                         self.weights[w_row,w_col,channel_input,channel_output ] += \
                                         self.a_plus * oldWeight * (1- oldWeight)
@@ -172,14 +181,12 @@ class ConvolutionalLayer(Layer):
                                 for channel_in in range(channels_in):
                                     presyn_neuron = self.spikes_presyn[0,in_row,in_col,channel_in,self.curr_iteration]
                                     if presyn_neuron == 1:
-                                        counter_weakened +=1
+                                        self.counter_weakened +=1
                                         oldWeight = self.weights[w_row,w_col,channel_in,channel_output] 
                                         self.weights[w_row,w_col,channel_in,channel_output] += \
                                         self.a_minus * oldWeight * (1- oldWeight)
         np.add( self.weights, self.a_decay)
         
-        print( "Strenghtened syn:" +str(counter_strenghtened))
-        print( "Weakened syn:" +str(counter_weakened))
 
 
 
@@ -235,4 +242,8 @@ class PoolingLayer(Layer):
 
     def saveWeights(self,path,layer_index):
         pass
-        
+ 
+    def getSynapseChangeInfo(self):
+        return -1, -1
+
+       
