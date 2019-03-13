@@ -200,8 +200,7 @@ class ConvolutionalLayer(Layer):
                                         oldWeight = self.weights[w_row,w_col,channel_in,channel_output] 
                                         self.weights[w_row,w_col,channel_in,channel_output] += \
                                         self.a_minus * oldWeight * (1- oldWeight)
-        np.add( self.weights, self.a_decay)
-        
+        self.weights += self.a_decay * self.weights * ( 1 - self.weights)       
 
 
 

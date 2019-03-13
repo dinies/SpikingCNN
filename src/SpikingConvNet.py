@@ -39,15 +39,15 @@ class SpikingConvNet(object):
         self.layers = [
             Layer.ConvolutionalLayer(padding, strides_conv,
                 [5,5,1,4],10., [1,160,250,1], [1,160,250,4],
-                encoding_t,.004,.003,.00001, stdp_flag ),
+                encoding_t,.09,-.08,-.005, stdp_flag ),
             Layer.PoolingLayer(padding, [6,6], [7,7], pooling_type, [1,27,42,4]),
             Layer.ConvolutionalLayer(padding,strides_conv,
                 [17,17,4,20], 50., [1,27,42,4], [1,27,42,20],
-                encoding_t,.0004,.0003,.000001, stdp_flag),
+                encoding_t,.05,-.04,-.001, stdp_flag),
             Layer.PoolingLayer(padding, [5,5], [5,5], pooling_type, [1,6,9,20]),
             Layer.ConvolutionalLayer(padding, strides_conv,
                 [5,5,20,20], math.inf , [1,6,9,20], [1,6,9,20],
-                encoding_t,.0004,.0003,.000001, stdp_flag)
+                encoding_t,.05,-.04,-.001, stdp_flag)
             ]
 
         if start_from_scratch:
