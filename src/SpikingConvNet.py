@@ -133,6 +133,15 @@ class SpikingConvNet(object):
             fw=csv.writer(csvfile,delimiter=',',quotechar='|',quoting=csv.QUOTE_MINIMAL)
             fw.writerow( log_list )
 
+    def getTotalWeightsStats( self):
+        magnitude_vec = np.zeros( [10,1])
+        index = 0
+        for layer in self.layers:
+            layer.loadWeights( self.pathWeights, index )
+            magnitude_vec += layer.getWeightsStatistics()
+            index+=1
+
+        return magnitude_vec
 
     def evolutionLoop( self, target_number_of_images ):
 
@@ -195,7 +204,7 @@ class SpikingConvNet(object):
 if __name__ == '__main__':
     # start_from_scratch = True
     start_from_scratch = False
-    number_of_images =  5
+    number_of_images =  20
     phase = "Learning"
     # phase = "Training"
     # phase = "Testing"
