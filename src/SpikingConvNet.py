@@ -141,7 +141,11 @@ class SpikingConvNet(object):
             magnitude_vec += layer.getWeightsStatistics()
             index+=1
 
-        return magnitude_vec
+        magnitude_list = []
+        for ele in magnitude_vec:
+            magnitude_list.append( int( ele))
+
+        return magnitude_list
 
     def evolutionLoop( self, target_number_of_images ):
 
@@ -197,14 +201,16 @@ class SpikingConvNet(object):
                 self.moveImgInDoneFolder( img )
 
                 self.writeInLog( log_list)
+
                 print( img['name'])
+            self.writeInLog( self.getTotalWeightsStats())
 
 
 
 if __name__ == '__main__':
-    # start_from_scratch = True
+    #start_from_scratch = True
     start_from_scratch = False
-    number_of_images =  20
+    number_of_images = 5
     phase = "Learning"
     # phase = "Training"
     # phase = "Testing"
