@@ -45,7 +45,7 @@ class ConvolutionalLayer(Layer):
 
     def __init__(self, padding_type, stride, filter_dim, threshold_potential,\
             expected_input_dim, expected_output_dim, encoding_t,\
-            a_plus = 0.02, a_minus = 0.01, a_decay = 0.001, stdp_flag = True):
+            a_plus = 0.02, a_minus = -0.01, a_decay = -0.001, stdp_flag = True):
 
         super().__init__( padding_type, stride, expected_output_dim)
         self.filter_dim = filter_dim
@@ -121,13 +121,16 @@ class ConvolutionalLayer(Layer):
         currSpikesNp = np.zeros( self.expected_output_dim)
         newPotentialsNp = tf.math.add( out_conv , self.oldPotentials).numpy()
 
+        counter = 0
+
         for row in range(newPotentialsNp.shape[1]):
             for column in range(newPotentialsNp.shape[2]):
                 for channel in range(newPotentialsNp.shape[3]):
                     if newPotentialsNp[0,row,column,channel] >= self.threshold_potential:
+                        counter +=1
                         currSpikesNp[0, row, column, channel ] = 1.0
                         newPotentialsNp[0, row, column, channel ] = 0.0
-        
+
         S, K_inh = self.lateral_inh_CPU( currSpikesNp, newPotentialsNp, self.K_inh)
         self.K_inh = K_inh
 

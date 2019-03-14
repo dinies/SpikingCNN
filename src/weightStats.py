@@ -8,9 +8,9 @@ scn= SpikingConvNet.SpikingConvNet( phase,start_from_scratch)
 magnitude_vec = scn.getTotalWeightsStats()
 print( magnitude_vec)
 
-a_plus = .09
-a_minus = -.08
-a_decay = -.02
+a_plus = .12
+a_minus = -.10
+a_decay = -.00
 
 
 

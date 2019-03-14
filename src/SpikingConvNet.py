@@ -39,15 +39,15 @@ class SpikingConvNet(object):
         self.layers = [
             Layer.ConvolutionalLayer(padding, strides_conv,
                 [5,5,1,4],10., [1,160,250,1], [1,160,250,4],
-                encoding_t,.09,-.08,-.005, stdp_flag ),
+                encoding_t,.12,-.10,-.000, stdp_flag ),
             Layer.PoolingLayer(padding, [6,6], [7,7], pooling_type, [1,27,42,4]),
             Layer.ConvolutionalLayer(padding,strides_conv,
                 [17,17,4,20], 50., [1,27,42,4], [1,27,42,20],
-                encoding_t,.05,-.04,-.001, stdp_flag),
+                encoding_t,.08,-.06,-.0000, stdp_flag),
             Layer.PoolingLayer(padding, [5,5], [5,5], pooling_type, [1,6,9,20]),
             Layer.ConvolutionalLayer(padding, strides_conv,
                 [5,5,20,20], math.inf , [1,6,9,20], [1,6,9,20],
-                encoding_t,.05,-.04,-.001, stdp_flag)
+                encoding_t,.08,-.06,-.0000, stdp_flag)
             ]
 
         if start_from_scratch:
@@ -78,7 +78,7 @@ class SpikingConvNet(object):
             fw=csv.writer(csvfile,delimiter=',',quotechar='|',quoting=csv.QUOTE_MINIMAL)
             feature_list =[]
             for f in features:
-                feature_list.append( str(f))
+                feature_list.append( str(round(f,3)))
             if label == 'Face':
                 feature_list.append(0)
             else:
@@ -210,10 +210,10 @@ class SpikingConvNet(object):
 if __name__ == '__main__':
     #start_from_scratch = True
     start_from_scratch = False
-    number_of_images = 5
-    phase = "Learning"
-    # phase = "Training"
-    # phase = "Testing"
+    number_of_images = 25
+    # phase = "Learning"
+    #phase = "Training"
+    phase = "Testing"
     scn= SpikingConvNet( phase,start_from_scratch)
     scn.evolutionLoop( number_of_images)
  
