@@ -9,12 +9,10 @@ tf.enable_eager_execution()
 
 sub_path = dirname(dirname(realpath(__file__)))
 pathTrainDataset = sub_path + '/datasets/ClassifierSet/TrainingData.csv'
-# pathTrainDataset = sub_path + '/models/datasets/'+'dummyTrain.csv'
 train = pd.read_csv( pathTrainDataset)
 train_X, train_y = train, train.pop('label')
 
 pathTestDataset = sub_path + '/datasets/ClassifierSet/TestingData.csv'
-# pathTestDataset = sub_path + '/models/datasets/'+'dummyTest.csv'
 test= pd.read_csv( pathTestDataset)
 test_X, test_y = test, test.pop('label')
 
@@ -28,8 +26,11 @@ def input_fun( features, labels, batch_size,repeat_count ):
 
 classifier = tf.estimator.BaselineClassifier(n_classes = 2)
 classifier.train( input_fn = lambda : input_fun( train_X,train_y, 2, 2))
-loss = classifier.evaluate( input_fn = lambda : input_fun( test_X,test_y, 2, 2))["loss"]
-print(loss)
+dictResult  = classifier.evaluate( input_fn = lambda : input_fun( test_X,test_y, 2, 2))
+
+
+
+print(dictResult)
 
 
         

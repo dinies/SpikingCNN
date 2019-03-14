@@ -36,11 +36,17 @@ class Layer( ABC):
     def getSynapseChangeInfo(self):
         pass
 
+    @abstractmethod
+    def getWeightsStatistics( self):
+        pass
 
 
 class ConvolutionalLayer(Layer):
 
-    def __init__(self, padding_type, stride, filter_dim, threshold_potential, expected_input_dim, expected_output_dim, encoding_t, a_plus = 0.02, a_minus = 0.01, a_decay = 0.001, stdp_flag = True):
+    def __init__(self, padding_type, stride, filter_dim, threshold_potential,\
+            expected_input_dim, expected_output_dim, encoding_t,\
+            a_plus = 0.02, a_minus = -0.01, a_decay = -0.001, stdp_flag = True):
+
         super().__init__( padding_type, stride, expected_output_dim)
         self.filter_dim = filter_dim
         self.threshold_potential = threshold_potential
@@ -71,7 +77,8 @@ class ConvolutionalLayer(Layer):
         self.oldPotentials = tfe.Variable( np.zeros( self.expected_output_dim ))
 
     def resetInhibition( self):
-        self.K_inh = np.ones(( self.expected_output_dim[1], self.expected_output_dim[2])).astype(np.uint8)
+        self.K_inh = np.ones(( self.expected_output_dim[1],\
+                self.expected_output_dim[2])).astype(np.uint8)
 
     def resetLayer(self):
         self.resetOldPotentials()
@@ -87,6 +94,23 @@ class ConvolutionalLayer(Layer):
     def saveWeights(self,path,layer_index):
         np.save( path + 'weight_'+ str(layer_index)+ '.npy', self.weights)
 
+    def getWeightsStatistics( self):
+
+        array_counter = np.zeros( [10,1])
+        [rows, cols,ch_ins,ch_outs] = self.weights.shape
+        for r in range( rows):
+            for c in range(cols):
+                for ch_in in range(ch_ins):
+                    for ch_out in range( ch_outs):
+                        w= self.weights[ r,c,ch_in,ch_out]
+                        if w > 1. or w < 0. :
+                            print( 'weight out of bounds [0, 1] with val: '+str(w))
+                        else:
+                            index = math.floor(w*10)
+                            array_counter[index] += 1
+
+        return array_counter
+                        
     def getSynapseChangeInfo(self):
         return self.counter_strenghtened, self.counter_weakened
 
@@ -94,19 +118,19 @@ class ConvolutionalLayer(Layer):
         input_filter = tfe.Variable( self.weights )
         out_conv = tf.nn.conv2d(input_to_layer,input_filter,self.stride,self.padding_type)
 
-
-        # Spiking Logic plus STDP 
         currSpikesNp = np.zeros( self.expected_output_dim)
         newPotentialsNp = tf.math.add( out_conv , self.oldPotentials).numpy()
+
+        counter = 0
 
         for row in range(newPotentialsNp.shape[1]):
             for column in range(newPotentialsNp.shape[2]):
                 for channel in range(newPotentialsNp.shape[3]):
                     if newPotentialsNp[0,row,column,channel] >= self.threshold_potential:
+                        counter +=1
                         currSpikesNp[0, row, column, channel ] = 1.0
                         newPotentialsNp[0, row, column, channel ] = 0.0
 
-        
         S, K_inh = self.lateral_inh_CPU( currSpikesNp, newPotentialsNp, self.K_inh)
         self.K_inh = K_inh
 
@@ -125,12 +149,6 @@ class ConvolutionalLayer(Layer):
 
         return currSpikes
 
-    # Deprecated
-    def computeDeconvolutionIndexesValidPadding( self, row, column):
-        top_left = [ row, column]
-        bottom_right = [ row + self.filter_dim[0]-1, column + self.filter_dim[1]-1]
-        return top_left, bottom_right
- 
     # Given a coordinate of a square of the output layer of a convolution
     # returns a list of quadruples of the form :
     # [ input row, input column, weight row, weight column ] 
@@ -162,10 +180,10 @@ class ConvolutionalLayer(Layer):
             for column in range(columns):
                 for channel_output in range(channels_out):
                     indexes = self.computeDeconvolutionIndexesSamePaddingOddFilterDim(row, column)
+                    # strenghten synapsis 
                     if self.spikes_postsyn[0,row,column,channel_output,self.curr_iteration] == 1:
                         for [in_row , in_col , w_row, w_col] in indexes:   
                             for channel_input in range(channels_in):
-                                # strenghten synapsis 
                                 for t_input in range( self.curr_iteration+1):
                                     presyn_neuron = self.spikes_presyn[0,in_row,in_col,channel_input,t_input]
                                     if presyn_neuron == 1:
@@ -185,8 +203,7 @@ class ConvolutionalLayer(Layer):
                                         oldWeight = self.weights[w_row,w_col,channel_in,channel_output] 
                                         self.weights[w_row,w_col,channel_in,channel_output] += \
                                         self.a_minus * oldWeight * (1- oldWeight)
-        np.add( self.weights, self.a_decay)
-        
+        self.weights += self.a_decay * self.weights * ( 1 - self.weights)       
 
 
 
@@ -246,4 +263,5 @@ class PoolingLayer(Layer):
     def getSynapseChangeInfo(self):
         return -1, -1
 
-       
+    def getWeightsStatistics( self):
+        return np.zeros( [10,1])

@@ -39,15 +39,15 @@ class SpikingConvNet(object):
         self.layers = [
             Layer.ConvolutionalLayer(padding, strides_conv,
                 [5,5,1,4],10., [1,160,250,1], [1,160,250,4],
-                encoding_t,.004,.003,.00001, stdp_flag ),
+                encoding_t,.12,-.10,-.000, stdp_flag ),
             Layer.PoolingLayer(padding, [6,6], [7,7], pooling_type, [1,27,42,4]),
             Layer.ConvolutionalLayer(padding,strides_conv,
                 [17,17,4,20], 50., [1,27,42,4], [1,27,42,20],
-                encoding_t,.0004,.0003,.000001, stdp_flag),
+                encoding_t,.08,-.06,-.0000, stdp_flag),
             Layer.PoolingLayer(padding, [5,5], [5,5], pooling_type, [1,6,9,20]),
             Layer.ConvolutionalLayer(padding, strides_conv,
                 [5,5,20,20], math.inf , [1,6,9,20], [1,6,9,20],
-                encoding_t,.0004,.0003,.000001, stdp_flag)
+                encoding_t,.08,-.06,-.0000, stdp_flag)
             ]
 
         if start_from_scratch:
@@ -78,7 +78,7 @@ class SpikingConvNet(object):
             fw=csv.writer(csvfile,delimiter=',',quotechar='|',quoting=csv.QUOTE_MINIMAL)
             feature_list =[]
             for f in features:
-                feature_list.append( str(f))
+                feature_list.append( str(round(f,3)))
             if label == 'Face':
                 feature_list.append(0)
             else:
@@ -133,6 +133,19 @@ class SpikingConvNet(object):
             fw=csv.writer(csvfile,delimiter=',',quotechar='|',quoting=csv.QUOTE_MINIMAL)
             fw.writerow( log_list )
 
+    def getTotalWeightsStats( self):
+        magnitude_vec = np.zeros( [10,1])
+        index = 0
+        for layer in self.layers:
+            layer.loadWeights( self.pathWeights, index )
+            magnitude_vec += layer.getWeightsStatistics()
+            index+=1
+
+        magnitude_list = []
+        for ele in magnitude_vec:
+            magnitude_list.append( int( ele))
+
+        return magnitude_list
 
     def evolutionLoop( self, target_number_of_images ):
 
@@ -188,17 +201,19 @@ class SpikingConvNet(object):
                 self.moveImgInDoneFolder( img )
 
                 self.writeInLog( log_list)
+
                 print( img['name'])
+            self.writeInLog( self.getTotalWeightsStats())
 
 
 
 if __name__ == '__main__':
-    start_from_scratch = True
-    # start_from_scratch = False
-    number_of_images = 15
-    phase = "Learning"
-    # phase = "Training"
-    #  phase = "Testing"
+    #start_from_scratch = True
+    start_from_scratch = False
+    number_of_images = 25
+    # phase = "Learning"
+    #phase = "Training"
+    phase = "Testing"
     scn= SpikingConvNet( phase,start_from_scratch)
     scn.evolutionLoop( number_of_images)
  
