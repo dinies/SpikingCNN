@@ -2,7 +2,7 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
 import pdb
-import MyMath
+from models import MyMath
 
 tf.enable_eager_execution()
 

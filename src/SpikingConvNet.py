@@ -210,10 +210,10 @@ class SpikingConvNet(object):
 if __name__ == '__main__':
     #start_from_scratch = True
     start_from_scratch = False
-    number_of_images = 25
-    # phase = "Learning"
+    number_of_images = 1
+    phase = "Learning"
     #phase = "Training"
-    phase = "Testing"
+    #phase = "Testing"
     scn= SpikingConvNet( phase,start_from_scratch)
     scn.evolutionLoop( number_of_images)
  

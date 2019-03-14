@@ -1,6 +1,6 @@
 import unittest
-from context import src
-from src.EagerPendulum import EagerPendulum
+from context import models
+from models.EagerPendulum import EagerPendulum
 
 class EagerPendulumTest( unittest.TestCase):
     def setUp(self):

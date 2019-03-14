@@ -22,15 +22,13 @@ def input_fun( features, labels, batch_size,repeat_count ):
     dataset = dataset.shuffle(10).repeat(repeat_count).batch( batch_size)
     return dataset
     
+from sklearn import linear_model
+lin = linear_model.LogisticRegression()
+lin.fit(train_X, train_y)
+print(lin.score(test_X, test_y))
 
-
-classifier = tf.estimator.BaselineClassifier(n_classes = 2)
-classifier.train( input_fn = lambda : input_fun( train_X,train_y, 2, 2))
-dictResult  = classifier.evaluate( input_fn = lambda : input_fun( test_X,test_y, 2, 2))
-
-
-
-print(dictResult)
-
-
-        
+      
+from sklearn import svm
+svm = svm.SVC()
+svm.fit(train_X, train_y)
+print(svm.score(test_X, test_y))
