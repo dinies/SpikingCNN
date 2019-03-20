@@ -1,7 +1,9 @@
+from ConvolutionalLayer import ConvolutionalLayer
+from PoolingLayer import PoolingLayer
+
 import tensorflow as tf
 import tensorflow.contrib.eager as tfe
 import DoGwrapper 
-import Layer
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.random
@@ -12,6 +14,7 @@ import pdb
 import csv
 import math
 import os
+
 
 tf.enable_eager_execution()
 
@@ -37,15 +40,15 @@ class SpikingConvNet(object):
         stdp_flag = phase == 'Learning'
 
         self.layers = [
-            Layer.ConvolutionalLayer(padding, strides_conv,
+            ConvolutionalLayer(padding, strides_conv,
                 [5,5,1,4],10., [1,160,250,1], [1,160,250,4],
                 encoding_t,.12,-.10,-.000, stdp_flag ),
-            Layer.PoolingLayer(padding, [6,6], [7,7], pooling_type, [1,27,42,4]),
-            Layer.ConvolutionalLayer(padding,strides_conv,
+            PoolingLayer(padding, [6,6], [7,7], pooling_type, [1,27,42,4]),
+            ConvolutionalLayer(padding,strides_conv,
                 [17,17,4,20], 50., [1,27,42,4], [1,27,42,20],
                 encoding_t,.08,-.06,-.0000, stdp_flag),
-            Layer.PoolingLayer(padding, [5,5], [5,5], pooling_type, [1,6,9,20]),
-            Layer.ConvolutionalLayer(padding, strides_conv,
+            PoolingLayer(padding, [5,5], [5,5], pooling_type, [1,6,9,20]),
+            ConvolutionalLayer(padding, strides_conv,
                 [5,5,20,20], math.inf , [1,6,9,20], [1,6,9,20],
                 encoding_t,.08,-.06,-.0000, stdp_flag)
             ]

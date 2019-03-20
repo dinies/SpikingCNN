@@ -2,7 +2,7 @@ import unittest
 from context import models
 from models.MyMath import MyMath
 
-class EagerPendulumTest( unittest.TestCase):
+class MyMathTest( unittest.TestCase):
     def setUp(self):
         self.epsilon = 0.0001
 
