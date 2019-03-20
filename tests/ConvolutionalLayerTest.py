@@ -3,7 +3,7 @@ from context import src
 from src.ConvolutionalLayer import *
 
 
-class STDPTest( unittest.TestCase):
+class ConvolutionalLayerTest( unittest.TestCase):
     def setUp(self):
         strides_conv= [1,1,1,1]
         padding= "SAME"
@@ -26,29 +26,38 @@ class STDPTest( unittest.TestCase):
         self.layer.curr_iteration = 1
         self.layer.weights = np.ones( [3,3,2,2]) * .5
 
-        presynFirst = np.zeros( [1,2,2,2])
-        presynFirst[0,0,1,0] = 1.
-        presynFirst[0,1,1,1] = 1.
-        presynSecond = np.zeros( [1,2,2,2])
-        presynSecond[0,1,0,1] = 1.
-        postsynFirst = np.zeros( [1,2,2,2])
-        postsynFirst[0,0,0,0] = 1.
-        postsynFirst[0,1,0,1] = 1.
-        postsynSecond = np.zeros( [1,2,2,2])
-        postsynSecond[0,0,1,0] = 1.
-        postsynSecond[0,0,1,1] = 1.
+        presynBefore = np.zeros( [1,2,2,2])
+        presynBefore[0,0,1,0] = 1.
+        presynBefore[0,1,1,1] = 1.
+        presynAfter= np.zeros( [1,2,2,2])
+        presynAfter[0,1,0,1] = 1.
 
-        self.layer.spikes_presyn[:,:,:,:,0] = presynFirst
-        self.layer.spikes_postsyn[:,:,:,:,0] = presynSecond
-        self.layer.spikes_presyn[:,:,:,:,1] = postsynFirst
-        self.layer.spikes_postsyn[:,:,:,:,1] = postsynSecond
+        postsynBefore= np.zeros( [1,2,2,2])
+        postsynBefore[0,0,0,0] = 1.
+        postsynBefore[0,1,0,1] = 1.
+        postsynAfter= np.zeros( [1,2,2,2])
+        postsynAfter[0,0,1,0] = 1.
+        postsynAfter[0,0,1,1] = 1.
 
+        self.layer.spikes_presyn[:,:,:,:,0] = presynBefore
+        self.layer.spikes_presyn[:,:,:,:,1] = presynAfter
+        self.layer.spikes_postsyn[:,:,:,:,0] = postsynBefore
+        self.layer.spikes_postsyn[:,:,:,:,1] = postsynAfter
 
+    def test_computeDeconvolutionIndexesSamePaddingOddFilterDim(self):
+        filt_dim = [3,3,2,2]
+        input_dim = [1,2,2,2] 
+        output_dim = [1,2,2,2]
+                
+        indexes = computeDeconvolutionIndexesSamePaddingOddFilterDim( 0, 0, filt_dim, input_dim, output_dim)
+        print(indexes)
+        truth_indexes = [[0,0,1,1],[0,1,1,2],[1,0,2,1],[1,1,2,2]]
+        for t in truth_indexes:
+            self.assertTrue( t in indexes)
           
 
-    def test_stdpIteration(self):
+    def test_STDP(self):
         print( self.layer.getWeightsStatistics())
-        self.assertEqual( self.layer.weights[1,1,1,1], .5)
         self.layer.STDP_learning()
         print( self.layer.getWeightsStatistics())
         weights = self.layer.weights
@@ -57,17 +66,17 @@ class STDPTest( unittest.TestCase):
         self.assertEqual( weights[0,0,0,0], .5)
         self.assertEqual( weights[0,1,0,0], .5)
         self.assertEqual( weights[0,2,0,0], .5)
-        self.assertEqual( weights[1,0,0,0], .5)
+        self.assertEqual( weights[1,0,0,0], .5) 
         self.assertEqual( weights[1,1,0,0], .625) # str on paper computation
         self.assertEqual( weights[1,2,0,0], .5)
         self.assertEqual( weights[2,0,0,0], .5)
-        self.assertEqual( weights[2,1,0,0], .5)
+        self.assertEqual( weights[2,1,0,0], .5) # str in bugged code
         self.assertEqual( weights[2,2,0,0], .5)
    # ch_in: 1 , ch_out: 0
         self.assertEqual( weights[0,0,1,0], .5)
         self.assertEqual( weights[0,1,1,0], .5)
-        self.assertEqual( weights[0,2,1,0], .5) # str in bugged code
-        self.assertEqual( weights[1,0,1,0], .5)
+        self.assertEqual( weights[0,2,1,0], .5) 
+        self.assertEqual( weights[1,0,1,0], .5) 
         self.assertEqual( weights[1,1,1,0], .5)
         self.assertEqual( weights[1,2,1,0], .5)
         self.assertEqual( weights[2,0,1,0], .625) # str on paper computation
@@ -77,28 +86,66 @@ class STDPTest( unittest.TestCase):
         self.assertEqual( weights[0,0,0,1], .5)
         self.assertEqual( weights[0,1,0,1], .5)
         self.assertEqual( weights[0,2,0,1], .5)
-        self.assertEqual( weights[1,0,0,1], .5)
+        self.assertEqual( weights[1,0,0,1], .5) 
         self.assertEqual( weights[1,1,0,1], .625) # str on paper computation
         self.assertEqual( weights[1,2,0,1], .5)
         self.assertEqual( weights[2,0,0,1], .5)
-        self.assertEqual( weights[2,1,0,1], .5)
+        self.assertEqual( weights[2,1,0,1], .5) # str in bugged code
         self.assertEqual( weights[2,2,0,1], .5)
    # ch_in: 1 , ch_out: 1
         self.assertEqual( weights[0,0,1,1], .5)
         self.assertEqual( weights[0,1,1,1], .5)
-        self.assertEqual( weights[0,2,1,1], .5) # str in bugged code
-        self.assertEqual( weights[1,0,1,1], .5)
+        self.assertEqual( weights[0,2,1,1], .5)  
+        self.assertEqual( weights[1,0,1,1], .5) 
         self.assertEqual( weights[1,1,1,1], .5)
         self.assertEqual( weights[1,2,1,1], .5)
-        self.assertEqual( weights[2,0,1,1], .5)
+        self.assertEqual( weights[2,0,1,1], .625) # str on paper computation
         self.assertEqual( weights[2,1,1,1], .625) # str on paper computation
         self.assertEqual( weights[2,2,1,1], .5)
 
- #      self.assertEqual( weights[1,1,0,0], .625)
- #      self.assertEqual( weights[2,1,1,0], .625)
- #      self.assertEqual( weights[2,0,1,0], .625)
- #      self.assertEqual( weights[1,1,0,1], .625)
- #      self.assertEqual( weights[2,1,1,1], .625)
+'''
+result with the rewritten stdp
+# ch_in: 0 , ch_out: 0
+        self.assertEqual( weights[0,0,0,0], .5)
+        self.assertEqual( weights[0,1,0,0], .5)
+        self.assertEqual( weights[0,2,0,0], .5)
+        self.assertEqual( weights[1,0,0,0], .5) 
+        self.assertEqual( weights[1,1,0,0], .5) # str on paper computation
+        self.assertEqual( weights[1,2,0,0], .5)
+        self.assertEqual( weights[2,0,0,0], .5)
+        self.assertEqual( weights[2,1,0,0], .625) # str in bugged code
+        self.assertEqual( weights[2,2,0,0], .5)
+   # ch_in: 1 , ch_out: 0
+        self.assertEqual( weights[0,0,1,0], .5)
+        self.assertEqual( weights[0,1,1,0], .5)
+        self.assertEqual( weights[0,2,1,0], .5) 
+        self.assertEqual( weights[1,0,1,0], .5) 
+        self.assertEqual( weights[1,1,1,0], .5)
+        self.assertEqual( weights[1,2,1,0], .5)
+        self.assertEqual( weights[2,0,1,0], .5) # str on paper computation
+        self.assertEqual( weights[2,1,1,0], .625) # str on paper computation
+        self.assertEqual( weights[2,2,1,0], .5)
+   # ch_in: 0 , ch_out: 1
+        self.assertEqual( weights[0,0,0,1], .5)
+        self.assertEqual( weights[0,1,0,1], .5)
+        self.assertEqual( weights[0,2,0,1], .5)
+        self.assertEqual( weights[1,0,0,1], .5) 
+        self.assertEqual( weights[1,1,0,1], .5) # str on paper computation
+        self.assertEqual( weights[1,2,0,1], .5)
+        self.assertEqual( weights[2,0,0,1], .5)
+        self.assertEqual( weights[2,1,0,1], .625) # str in bugged code
+        self.assertEqual( weights[2,2,0,1], .5)
+   # ch_in: 1 , ch_out: 1
+        self.assertEqual( weights[0,0,1,1], .5)
+        self.assertEqual( weights[0,1,1,1], .5)
+        self.assertEqual( weights[0,2,1,1], .5)  
+        self.assertEqual( weights[1,0,1,1], .5) 
+        self.assertEqual( weights[1,1,1,1], .5)
+        self.assertEqual( weights[1,2,1,1], .5)
+        self.assertEqual( weights[2,0,1,1], .5) # str on paper computation
+        self.assertEqual( weights[2,1,1,1], .625) # str on paper computation
+        self.assertEqual( weights[2,2,1,1], .5)
+'''
 
 
 if __name__ == '__main__':

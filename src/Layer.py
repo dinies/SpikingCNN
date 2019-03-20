@@ -4,6 +4,7 @@ import tensorflow.contrib.eager as tfe
 import numpy as np
 import math
 from numba import jit
+import itertools
 
 class Layer( ABC):
 

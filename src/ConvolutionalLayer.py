@@ -23,10 +23,10 @@ class ConvolutionalLayer(Layer):
         self.stdp_flag = stdp_flag
         self.counter_strenghtened =0
         self.counter_weakened =0
+        self.map_deconvolution_indexes = createMapDeconvIndexes(\
+                filter_dim, expected_input_dim, expected_output_dim)
 
-
-
-
+    
     def resetStoredData( self):
         self.curr_iteration = 0
         self.spikes_presyn = np.zeros(  self.expected_input_dim +[self.encoding_t])
@@ -57,16 +57,15 @@ class ConvolutionalLayer(Layer):
 
         array_counter = np.zeros( [10,1])
         [rows, cols,ch_ins,ch_outs] = self.weights.shape
-        for r in range( rows):
-            for c in range(cols):
-                for ch_in in range(ch_ins):
-                    for ch_out in range( ch_outs):
-                        w= self.weights[ r,c,ch_in,ch_out]
-                        if w > 1. or w < 0. :
-                            print( 'weight out of bounds [0, 1] with val: '+str(w))
-                        else:
-                            index = math.floor(w*10)
-                            array_counter[index] += 1
+
+        for r,c,ch_in,ch_out in itertools.product( range(rows),range(cols),range(ch_ins),range(ch_outs)):
+
+            w= self.weights[ r,c,ch_in,ch_out]
+            if w > 1. or w < 0. :
+                print( 'weight out of bounds [0, 1] with val: '+str(w))
+            else:
+                index = math.floor(w*10)
+                array_counter[index] += 1
 
         return array_counter
                         
@@ -82,13 +81,14 @@ class ConvolutionalLayer(Layer):
 
         counter = 0
 
-        for row in range(newPotentialsNp.shape[1]):
-            for column in range(newPotentialsNp.shape[2]):
-                for channel in range(newPotentialsNp.shape[3]):
-                    if newPotentialsNp[0,row,column,channel] >= self.threshold_potential:
-                        counter +=1
-                        currSpikesNp[0, row, column, channel ] = 1.0
-                        newPotentialsNp[0, row, column, channel ] = 0.0
+       
+        [_, rows, cols, channels] = newPotentialsNp.shape
+
+        for row, column, channel in itertools.product(range(rows),range(cols),range(channels)):
+            if newPotentialsNp[0,row,column,channel] >= self.threshold_potential:
+                counter +=1
+                currSpikesNp[0, row, column, channel ] = 1.0
+                newPotentialsNp[0, row, column, channel ] = 0.0
 
         S, K_inh = self.lateral_inh_CPU( currSpikesNp, newPotentialsNp, self.K_inh)
         self.K_inh = K_inh
@@ -108,27 +108,7 @@ class ConvolutionalLayer(Layer):
 
         return currSpikes
 
-    # Given a coordinate of a square of the output layer of a convolution
-    # returns a list of quadruples of the form :
-    # [ input row, input column, weight row, weight column ] 
-    def computeDeconvolutionIndexesSamePaddingOddFilterDim( self, row, column):
-
-        indexes_list = []
-        offset_r = math.ceil( (self.filter_dim[0]-1)/2)
-        offset_c = math.ceil( (self.filter_dim[1]-1)/2)
-        i = 0
-        j = 0
-        for r in range( row - offset_r, row + offset_r+1):
-            for c in range( column - offset_c, column + offset_c+1):
-                if 0 < r < self.expected_input_dim[1] and \
-                0 < c < self.expected_input_dim[2] : 
-                    indexes_list.append( [ r, c, i, j] )
-            j += 1
-        i +=1
-
-        return indexes_list 
-    
-               
+   
     def STDP_learning( self):
         [ _ , rows, columns, channels_out, _] = self.spikes_postsyn.shape
         channels_in = self.spikes_presyn.shape[3]
@@ -138,10 +118,9 @@ class ConvolutionalLayer(Layer):
         for row in range(rows):
             for column in range(columns):
                 for channel_output in range(channels_out):
-                    indexes = self.computeDeconvolutionIndexesSamePaddingOddFilterDim(row, column)
                     # strenghten synapsis 
                     if self.spikes_postsyn[0,row,column,channel_output,self.curr_iteration] == 1:
-                        for [in_row , in_col , w_row, w_col] in indexes:   
+                        for [in_row , in_col , w_row, w_col] in self.map_deconvolution_indexes[str(row)+','+str(column)] :   
                             for channel_input in range(channels_in):
                                 for t_input in range( self.curr_iteration+1):
                                     presyn_neuron = self.spikes_presyn[0,in_row,in_col,channel_input,t_input]
@@ -150,6 +129,35 @@ class ConvolutionalLayer(Layer):
                                         oldWeight = self.weights[w_row,w_col,channel_input,channel_output] 
                                         self.weights[w_row,w_col,channel_input,channel_output ] += \
                                         self.a_plus * oldWeight * (1- oldWeight)
+
+        self.weights += self.a_decay * self.weights * ( 1 - self.weights)       
+
+
+               
+    '''
+    this is bugged then i will reduce the visual complexity of the code above with this as example but this is deprecated
+    '''
+    def STDP_learning_rewritten( self):
+
+        self.counter_strenghtened = 0
+        self.counter_weakened = 0
+        [ _ , rows_out, cols_out, channels_out, _] = self.spikes_postsyn.shape
+        channels_in = self.spikes_presyn.shape[3]
+        curr_t = self.curr_iteration + 1 # added a one since here is intended starting from 1 not from 0
+        for r_out, c_out in itertools.product(range(rows_out),range(cols_out)):
+            # this will be precomputed and stored in a map
+            indexes = self.computeDeconvolutionIndexesSamePaddingOddFilterDim(r_out, c_out)
+            for ch_out in range(channels_out):
+                if self.spikes_postsyn[0,r_out,c_out,ch_out,self.curr_iteration] == 1:
+                    # there indexes will be the query on the map of precomputed indexes
+                    for [r_in,c_in,r_w,c_w] in indexes:
+                        for ch_in, t_in in itertools.product(range(channels_in),range(curr_t)):
+                            presyn_neuron = self.spikes_presyn[0,r_in,c_in,c_in,t_in]
+                            if presyn_neuron == 1:
+                                self.counter_strenghtened +=1
+                                w= self.weights[r_w,c_w,ch_in,ch_out]
+                                self.weights[r_w,c_w,ch_in,ch_out] = self.modifyWeight(w,self.a_plus)
+
 
         self.weights += self.a_decay * self.weights * ( 1 - self.weights)       
 
@@ -183,4 +191,49 @@ class ConvolutionalLayer(Layer):
         return S, K_inh
     # END Function borrowed from the paper autors
 
+
+
+
+
+
+# Static functions
+def createMapDeconvIndexes( filt_dim, input_dim, output_dim ):
+    map_indexes = {}
+    [ _ , rows, columns,  _] = output_dim
+
+    for r,c in itertools.product(range(rows),range(columns)):
+        indexes = computeDeconvolutionIndexesSamePaddingOddFilterDim(r,c,filt_dim,input_dim,output_dim)
+        key= str(r)+','+str(c)
+        map_indexes[key] = indexes
+        
+    return map_indexes
+
+
+# Given a coordinate of a square of the output layer of a convolution
+# returns a list of quadruples of the form :
+# [ input row, input column, weight row, weight column ] 
+# to optimize the code bring this execution at the creation of the class and
+# store all the indexes in a map with [r,c] as keys and the correspondences as values
+def computeDeconvolutionIndexesSamePaddingOddFilterDim(\
+    row, column, filter_dim, expected_input_dim, expected_output_dim ):
+
+    indexes_list = []
+    offset_r = math.ceil( (filter_dim[0]-1)/2)
+    offset_c = math.ceil( (filter_dim[1]-1)/2)
+    i = 0
+    for r in range( row - offset_r, row + offset_r+1):
+        j = 0
+        for c in range( column - offset_c, column + offset_c+1):
+            if 0<=r<expected_input_dim[1] and 0<=c<expected_input_dim[2]: 
+                indexes_list.append( [ r, c, i, j] )
+            j += 1
+        i +=1
+
+    return indexes_list 
+    
+def modifyWeight( weight, a, n_times = 1):
+    w = weight
+    for _ in range(n_times):
+        w += a * w * ( 1 - w)
+    return w
 
