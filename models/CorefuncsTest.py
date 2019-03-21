@@ -25,6 +25,26 @@ class CorefuncsTest( unittest.TestCase):
         print( "1st test")
         print( conv_res.shape )
 
+
+    def test_conv2d(self):
+        imageNp = np.zeros( [1,2,2,2])
+        imageNp[0][0][1][0] = 1.0
+        imageNp[0][1][0][0] = 8.0
+        imageNp[0][1][1][0] = 2.0
+        img = tf.constant( imageNp)
+
+        filterNp = np.ones( [3,3,2,2])
+        filter_input = tf.contrib.eager.Variable( filterNp)
+        #print( imageNp)
+  
+        stride = [1,1,1,1]
+        padding= "SAME"
+        conv_res = tf.nn.conv2d( img, filter_input, stride, padding)
+        #print(conv_res)
+       
+        print( "2st test")
+        print( conv_res.shape )
+
     def test_pooling(self):
 
         imageNp = np.zeros( [1,6,6,1])
@@ -37,7 +57,7 @@ class CorefuncsTest( unittest.TestCase):
         padding= "SAME"
         stride = [3,3]
         pool_res = tf.nn.pool( img, window_shape, pool_type, padding , strides= stride)
-        print( "2nd test")
+        print( "3nd test")
         print( pool_res.shape )
   #     print( pool_res)
         

@@ -1,18 +1,30 @@
 import SpikingConvNet
 import numpy as np
-
+'''
 start_from_scratch = False
 phase = "Unused"
 scn= SpikingConvNet.SpikingConvNet( phase,start_from_scratch)
 
 magnitude_vec = scn.getTotalWeightsStats()
 print( magnitude_vec)
+'''
+a_plus = .5
+a_minus = -.1
+a_decay = -.0
 
-a_plus = .12
-a_minus = -.10
-a_decay = -.00
+def modifyW( weight, a, n_times = 1):
+    w = weight
+    for _ in range(n_times):
+        w += a * w * ( 1 - w)
+    return w
 
 
+w_init = 0.5
+w_final = modifyW( w_init, a_plus,  1)
+print( w_final)
+
+
+'''
 
 initial_w_to_str_100_times = 0.3
 w_to_str_100_times = initial_w_to_str_100_times
@@ -39,7 +51,7 @@ r2= k + ( a_decay* k*( 1-k))
 
 print( r1)
 print( r2)
-
+'''
 
 
 
