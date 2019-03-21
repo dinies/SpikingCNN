@@ -1,4 +1,4 @@
-from Layer import *
+from src.Layer import *
 
 class ConvolutionalLayer(Layer):
 
@@ -80,7 +80,6 @@ class ConvolutionalLayer(Layer):
         newPotentialsNp = tf.math.add( out_conv , self.oldPotentials).numpy()
 
         counter = 0
-
        
         [_, rows, cols, channels] = newPotentialsNp.shape
 
@@ -110,58 +109,25 @@ class ConvolutionalLayer(Layer):
 
    
     def STDP_learning( self):
-        [ _ , rows, columns, channels_out, _] = self.spikes_postsyn.shape
+        [ _ , rows_out, cols_out, channels_out, _] = self.spikes_postsyn.shape
         channels_in = self.spikes_presyn.shape[3]
         self.counter_strenghtened = 0
         self.counter_weakened = 0
 
-        for row in range(rows):
-            for column in range(columns):
-                for channel_output in range(channels_out):
-                    # strenghten synapsis 
-                    if self.spikes_postsyn[0,row,column,channel_output,self.curr_iteration] == 1:
-                        for [in_row , in_col , w_row, w_col] in self.map_deconvolution_indexes[str(row)+','+str(column)] :   
-                            for channel_input in range(channels_in):
-                                for t_input in range( self.curr_iteration+1):
-                                    presyn_neuron = self.spikes_presyn[0,in_row,in_col,channel_input,t_input]
-                                    if presyn_neuron == 1:
-                                        self.counter_strenghtened +=1
-                                        oldWeight = self.weights[w_row,w_col,channel_input,channel_output] 
-                                        self.weights[w_row,w_col,channel_input,channel_output ] += \
-                                        self.a_plus * oldWeight * (1- oldWeight)
+        for r_out, c_out, ch_out in itertools.product( range(rows_out),range(cols_out),range(channels_out)):
+            if self.spikes_postsyn[0,r_out,c_out,ch_out,self.curr_iteration] == 1:
+                for [in_row , in_col , r_w, c_w] in self.map_deconvolution_indexes[str(r_out)+','+str(c_out)] :   
+                    for ch_in, t_input in itertools.product( range(channels_in),range( self.curr_iteration+1)):
+                        presyn_neuron = self.spikes_presyn[0,in_row,in_col,ch_in,t_input]
+                        if presyn_neuron == 1:
+                            self.counter_strenghtened +=1
+                            w= self.weights[r_w,c_w,ch_in,ch_out]
+                            self.weights[r_w,c_w,ch_in,ch_out] = modifyWeight(w,self.a_plus)
 
         self.weights += self.a_decay * self.weights * ( 1 - self.weights)       
 
 
                
-    '''
-    this is bugged then i will reduce the visual complexity of the code above with this as example but this is deprecated
-    '''
-    def STDP_learning_rewritten( self):
-
-        self.counter_strenghtened = 0
-        self.counter_weakened = 0
-        [ _ , rows_out, cols_out, channels_out, _] = self.spikes_postsyn.shape
-        channels_in = self.spikes_presyn.shape[3]
-        curr_t = self.curr_iteration + 1 # added a one since here is intended starting from 1 not from 0
-        for r_out, c_out in itertools.product(range(rows_out),range(cols_out)):
-            # this will be precomputed and stored in a map
-            indexes = self.computeDeconvolutionIndexesSamePaddingOddFilterDim(r_out, c_out)
-            for ch_out in range(channels_out):
-                if self.spikes_postsyn[0,r_out,c_out,ch_out,self.curr_iteration] == 1:
-                    # there indexes will be the query on the map of precomputed indexes
-                    for [r_in,c_in,r_w,c_w] in indexes:
-                        for ch_in, t_in in itertools.product(range(channels_in),range(curr_t)):
-                            presyn_neuron = self.spikes_presyn[0,r_in,c_in,c_in,t_in]
-                            if presyn_neuron == 1:
-                                self.counter_strenghtened +=1
-                                w= self.weights[r_w,c_w,ch_in,ch_out]
-                                self.weights[r_w,c_w,ch_in,ch_out] = self.modifyWeight(w,self.a_plus)
-
-
-        self.weights += self.a_decay * self.weights * ( 1 - self.weights)       
-
-
 
 
     # BEGIN Function borrowed from the paper autors

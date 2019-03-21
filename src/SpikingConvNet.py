@@ -211,8 +211,8 @@ class SpikingConvNet(object):
 
 
 if __name__ == '__main__':
-    #start_from_scratch = True
-    start_from_scratch = False
+    start_from_scratch = True
+    #start_from_scratch = False
     number_of_images = 1
     phase = "Learning"
     #phase = "Training"

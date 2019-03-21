@@ -1,6 +1,7 @@
 import unittest
 from context import src
 from src.ConvolutionalLayer import *
+import time
 
 
 class ConvolutionalLayerTest( unittest.TestCase):
@@ -50,27 +51,28 @@ class ConvolutionalLayerTest( unittest.TestCase):
         output_dim = [1,2,2,2]
                 
         indexes = computeDeconvolutionIndexesSamePaddingOddFilterDim( 0, 0, filt_dim, input_dim, output_dim)
-        print(indexes)
         truth_indexes = [[0,0,1,1],[0,1,1,2],[1,0,2,1],[1,1,2,2]]
         for t in truth_indexes:
             self.assertTrue( t in indexes)
           
 
     def test_STDP(self):
-        print( self.layer.getWeightsStatistics())
+        t_0 = time.time()
         self.layer.STDP_learning()
-        print( self.layer.getWeightsStatistics())
+        t_1 = time.time()
+        print(str(t_1- t_0))
         weights = self.layer.weights
+
 
    # ch_in: 0 , ch_out: 0
         self.assertEqual( weights[0,0,0,0], .5)
         self.assertEqual( weights[0,1,0,0], .5)
         self.assertEqual( weights[0,2,0,0], .5)
         self.assertEqual( weights[1,0,0,0], .5) 
-        self.assertEqual( weights[1,1,0,0], .625) # str on paper computation
+        self.assertEqual( weights[1,1,0,0], .625)
         self.assertEqual( weights[1,2,0,0], .5)
         self.assertEqual( weights[2,0,0,0], .5)
-        self.assertEqual( weights[2,1,0,0], .5) # str in bugged code
+        self.assertEqual( weights[2,1,0,0], .5) 
         self.assertEqual( weights[2,2,0,0], .5)
    # ch_in: 1 , ch_out: 0
         self.assertEqual( weights[0,0,1,0], .5)
@@ -79,18 +81,18 @@ class ConvolutionalLayerTest( unittest.TestCase):
         self.assertEqual( weights[1,0,1,0], .5) 
         self.assertEqual( weights[1,1,1,0], .5)
         self.assertEqual( weights[1,2,1,0], .5)
-        self.assertEqual( weights[2,0,1,0], .625) # str on paper computation
-        self.assertEqual( weights[2,1,1,0], .625) # str on paper computation
+        self.assertEqual( weights[2,0,1,0], .625)
+        self.assertEqual( weights[2,1,1,0], .625)
         self.assertEqual( weights[2,2,1,0], .5)
    # ch_in: 0 , ch_out: 1
         self.assertEqual( weights[0,0,0,1], .5)
         self.assertEqual( weights[0,1,0,1], .5)
         self.assertEqual( weights[0,2,0,1], .5)
         self.assertEqual( weights[1,0,0,1], .5) 
-        self.assertEqual( weights[1,1,0,1], .625) # str on paper computation
+        self.assertEqual( weights[1,1,0,1], .625)
         self.assertEqual( weights[1,2,0,1], .5)
         self.assertEqual( weights[2,0,0,1], .5)
-        self.assertEqual( weights[2,1,0,1], .5) # str in bugged code
+        self.assertEqual( weights[2,1,0,1], .5) 
         self.assertEqual( weights[2,2,0,1], .5)
    # ch_in: 1 , ch_out: 1
         self.assertEqual( weights[0,0,1,1], .5)
@@ -99,54 +101,9 @@ class ConvolutionalLayerTest( unittest.TestCase):
         self.assertEqual( weights[1,0,1,1], .5) 
         self.assertEqual( weights[1,1,1,1], .5)
         self.assertEqual( weights[1,2,1,1], .5)
-        self.assertEqual( weights[2,0,1,1], .625) # str on paper computation
-        self.assertEqual( weights[2,1,1,1], .625) # str on paper computation
+        self.assertEqual( weights[2,0,1,1], .625) 
+        self.assertEqual( weights[2,1,1,1], .625)
         self.assertEqual( weights[2,2,1,1], .5)
-
-'''
-result with the rewritten stdp
-# ch_in: 0 , ch_out: 0
-        self.assertEqual( weights[0,0,0,0], .5)
-        self.assertEqual( weights[0,1,0,0], .5)
-        self.assertEqual( weights[0,2,0,0], .5)
-        self.assertEqual( weights[1,0,0,0], .5) 
-        self.assertEqual( weights[1,1,0,0], .5) # str on paper computation
-        self.assertEqual( weights[1,2,0,0], .5)
-        self.assertEqual( weights[2,0,0,0], .5)
-        self.assertEqual( weights[2,1,0,0], .625) # str in bugged code
-        self.assertEqual( weights[2,2,0,0], .5)
-   # ch_in: 1 , ch_out: 0
-        self.assertEqual( weights[0,0,1,0], .5)
-        self.assertEqual( weights[0,1,1,0], .5)
-        self.assertEqual( weights[0,2,1,0], .5) 
-        self.assertEqual( weights[1,0,1,0], .5) 
-        self.assertEqual( weights[1,1,1,0], .5)
-        self.assertEqual( weights[1,2,1,0], .5)
-        self.assertEqual( weights[2,0,1,0], .5) # str on paper computation
-        self.assertEqual( weights[2,1,1,0], .625) # str on paper computation
-        self.assertEqual( weights[2,2,1,0], .5)
-   # ch_in: 0 , ch_out: 1
-        self.assertEqual( weights[0,0,0,1], .5)
-        self.assertEqual( weights[0,1,0,1], .5)
-        self.assertEqual( weights[0,2,0,1], .5)
-        self.assertEqual( weights[1,0,0,1], .5) 
-        self.assertEqual( weights[1,1,0,1], .5) # str on paper computation
-        self.assertEqual( weights[1,2,0,1], .5)
-        self.assertEqual( weights[2,0,0,1], .5)
-        self.assertEqual( weights[2,1,0,1], .625) # str in bugged code
-        self.assertEqual( weights[2,2,0,1], .5)
-   # ch_in: 1 , ch_out: 1
-        self.assertEqual( weights[0,0,1,1], .5)
-        self.assertEqual( weights[0,1,1,1], .5)
-        self.assertEqual( weights[0,2,1,1], .5)  
-        self.assertEqual( weights[1,0,1,1], .5) 
-        self.assertEqual( weights[1,1,1,1], .5)
-        self.assertEqual( weights[1,2,1,1], .5)
-        self.assertEqual( weights[2,0,1,1], .5) # str on paper computation
-        self.assertEqual( weights[2,1,1,1], .625) # str on paper computation
-        self.assertEqual( weights[2,2,1,1], .5)
-'''
-
 
 if __name__ == '__main__':
     unittest.main()

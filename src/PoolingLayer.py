@@ -1,4 +1,4 @@
-from Layer import *
+from src.Layer import *
 
 class PoolingLayer(Layer):
 
