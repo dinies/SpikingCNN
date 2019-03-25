@@ -1,6 +1,7 @@
 import context
 from src.Layer import *
 
+
 class ConvolutionalLayer(Layer):
 
     def __init__(self, padding_type, stride, filter_dim, threshold_potential,\
@@ -46,7 +47,7 @@ class ConvolutionalLayer(Layer):
         self.resetStoredData()
 
     def createWeights(self):
-        self.weights = np.random.random_sample(self.filter_dim)
+        self.weights = np.ones(self.filter_dim)*0.5
 
     def loadWeights(self,path,layer_index):
         self.weights = np.load( path + 'weight_'+ str(layer_index)+ '.npy')
@@ -67,7 +68,6 @@ class ConvolutionalLayer(Layer):
             else:
                 index = math.floor(w*10)
                 array_counter[index] += 1
-
         return array_counter
                         
     def getSynapseChangeInfo(self):
@@ -80,16 +80,13 @@ class ConvolutionalLayer(Layer):
         currSpikesNp = np.zeros( self.expected_output_dim)
         newPotentialsNp = tf.math.add( out_conv , self.oldPotentials).numpy()
 
-        counter = 0
        
         [_, rows, cols, channels] = newPotentialsNp.shape
 
         for row, column, channel in itertools.product(range(rows),range(cols),range(channels)):
             if newPotentialsNp[0,row,column,channel] >= self.threshold_potential:
-                counter +=1
                 currSpikesNp[0, row, column, channel ] = 1.0
                 newPotentialsNp[0, row, column, channel ] = 0.0
-
         S, K_inh = self.lateral_inh_CPU( currSpikesNp, newPotentialsNp, self.K_inh)
         self.K_inh = K_inh
 

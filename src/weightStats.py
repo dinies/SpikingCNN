@@ -8,9 +8,9 @@ scn= SpikingConvNet.SpikingConvNet( phase,start_from_scratch)
 magnitude_vec = scn.getTotalWeightsStats()
 print( magnitude_vec)
 '''
-a_plus = .5
-a_minus = -.1
-a_decay = -.0
+a_plus = .05
+a_minus = -.0
+a_decay = -.0005
 
 def modifyW( weight, a, n_times = 1):
     w = weight
@@ -20,7 +20,7 @@ def modifyW( weight, a, n_times = 1):
 
 
 w_init = 0.5
-w_final = modifyW( w_init, a_plus,  1)
+w_final = modifyW( w_init, a_plus,  60)
 print( w_final)
 
 

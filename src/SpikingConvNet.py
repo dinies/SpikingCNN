@@ -41,16 +41,16 @@ class SpikingConvNet(object):
 
         self.layers = [
             ConvolutionalLayer(padding, strides_conv,
-                [5,5,1,4],10., [1,160,250,1], [1,160,250,4],
-                encoding_t,.12,-.10,-.000, stdp_flag ),
+                [5,5,1,4],11.2, [1,160,250,1], [1,160,250,4],
+                encoding_t,.07,-.0,-.03, stdp_flag ),
             PoolingLayer(padding, [6,6], [7,7], pooling_type, [1,27,42,4]),
             ConvolutionalLayer(padding,strides_conv,
                 [17,17,4,20], 50., [1,27,42,4], [1,27,42,20],
-                encoding_t,.08,-.06,-.0000, stdp_flag),
+                encoding_t,.05,-.0,-.002, stdp_flag),
             PoolingLayer(padding, [5,5], [5,5], pooling_type, [1,6,9,20]),
             ConvolutionalLayer(padding, strides_conv,
                 [5,5,20,20], math.inf , [1,6,9,20], [1,6,9,20],
-                encoding_t,.08,-.06,-.0000, stdp_flag)
+                encoding_t,.00,-.00,-.0, stdp_flag)
             ]
 
         if start_from_scratch:
@@ -138,15 +138,21 @@ class SpikingConvNet(object):
 
     def getTotalWeightsStats( self):
         magnitude_vec = np.zeros( [10,1])
+        learning_layers_indexes = [0, 2] # only the first two conv
         index = 0
+        magnitude_list = []
         for layer in self.layers:
-            layer.loadWeights( self.pathWeights, index )
-            magnitude_vec += layer.getWeightsStatistics()
+            if index in learning_layers_indexes:
+                layer.loadWeights( self.pathWeights, index )
+                stats = layer.getWeightsStatistics()
+                magnitude_vec += stats
+                for x in stats:
+                    magnitude_list.append( int(x))
+                magnitude_list.append(-1)
             index+=1
 
-        magnitude_list = []
         for ele in magnitude_vec:
-            magnitude_list.append( int( ele))
+            magnitude_list.append( int(ele))
 
         return magnitude_list
 
@@ -215,7 +221,7 @@ if __name__ == '__main__':
     #start_from_scratch = False
     number_of_images = 1
     phase = "Learning"
-    #phase = "Training"
+    #phase = "Training
     #phase = "Testing"
     scn= SpikingConvNet( phase,start_from_scratch)
     scn.evolutionLoop( number_of_images)
