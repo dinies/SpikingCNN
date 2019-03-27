@@ -25,7 +25,7 @@ train_X_scaled = scaler.fit_transform( train_X)
 test_X_scaled = scaler.fit_transform( test_X)
 
 
-classifer = SVC(C=8.0)
+classifer = SVC(C=10.0)
 classifer.fit( train_X_scaled, train_y)
 print( "svm score: \n")
 print( classifer.score( test_X_scaled, test_y))

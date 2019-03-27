@@ -39,18 +39,33 @@ class SpikingConvNet(object):
 
         stdp_flag = phase == 'Learning'
 
+        ''' after 20 img the first layer converges
+        the second has some weights around 1 and the others
+        are in the initial value range : .68 score 
+        encoding_t,.02,-.0,-.02, stdp_flag ),
+        encoding_t,.006,-.0,-.002, stdp_flag),
+        '''
+
+        '''after some img both layers converges
+        with scary simmetry of weights around 0
+        and around 1: same number
+        score 0.67
+        encoding_t,.01,-.0,-.012, stdp_flag ),
+        encoding_t,.01,-.0,-.02, stdp_flag),
+        maybe try a slower convergence
+        '''
         self.layers = [
             ConvolutionalLayer(padding, strides_conv,
-                [5,5,1,4],10., [1,160,250,1], [1,160,250,4],
-                encoding_t,.12,-.10,-.000, stdp_flag ),
+                [5,5,1,4],11.1, [1,160,250,1], [1,160,250,4],
+                encoding_t,.01,-.0,-.012, stdp_flag ),
             PoolingLayer(padding, [6,6], [7,7], pooling_type, [1,27,42,4]),
             ConvolutionalLayer(padding,strides_conv,
-                [17,17,4,20], 50., [1,27,42,4], [1,27,42,20],
-                encoding_t,.08,-.06,-.0000, stdp_flag),
+                [17,17,4,20], 65., [1,27,42,4], [1,27,42,20],
+                encoding_t,.01,-.0,-.02, stdp_flag),
             PoolingLayer(padding, [5,5], [5,5], pooling_type, [1,6,9,20]),
             ConvolutionalLayer(padding, strides_conv,
                 [5,5,20,20], math.inf , [1,6,9,20], [1,6,9,20],
-                encoding_t,.08,-.06,-.0000, stdp_flag)
+                encoding_t,.0,-.0,-.0, stdp_flag)
             ]
 
         if start_from_scratch:
@@ -138,15 +153,21 @@ class SpikingConvNet(object):
 
     def getTotalWeightsStats( self):
         magnitude_vec = np.zeros( [10,1])
+        learning_layers_indexes = [0, 2] # only the first two conv
         index = 0
+        magnitude_list = []
         for layer in self.layers:
-            layer.loadWeights( self.pathWeights, index )
-            magnitude_vec += layer.getWeightsStatistics()
+            if index in learning_layers_indexes:
+                layer.loadWeights( self.pathWeights, index )
+                stats = layer.getWeightsStatistics()
+                magnitude_vec += stats
+                for x in stats:
+                    magnitude_list.append( int(x))
+                magnitude_list.append(-1)
             index+=1
 
-        magnitude_list = []
         for ele in magnitude_vec:
-            magnitude_list.append( int( ele))
+            magnitude_list.append( int(ele))
 
         return magnitude_list
 
@@ -169,25 +190,27 @@ class SpikingConvNet(object):
                 log_list = [ self.phase, img['label'],img['name'] ]
                 DoG = DoGwrapper.DoGwrapper( img ,self.encoding_t )
                 st = DoG.getSpikeTrains()
-           
                
                 for i in range(st.shape[2]):
-                    dogSlice = st[:,:,i]
-                    reshapedDogSlice=dogSlice.reshape([1,dogSlice.shape[0],dogSlice.shape[1],1])
-                    curr_input = tf.constant( reshapedDogSlice)
-                    log_list.append( 'st'+str(i))
+                    if i is not 0: #first is always blank
+                        dogSlice = st[:,:,i]
+                        reshapedDogSlice=dogSlice.reshape([1,dogSlice.shape[0],dogSlice.shape[1],1])
+                        curr_input = tf.constant( reshapedDogSlice)
+                        log_list.append( 'sT:'+str(i))
                
-                    for layer in self.layers:
-                        # In and out from the layer class are passed tf variables
-                        start = time.time()
-                        curr_input= layer.makeOperation( curr_input)
-                        end = time.time()
-                        log_list.append( str( round( end - start)))
-                        strenghtned,weakened = layer.getSynapseChangeInfo()
-                        if strenghtned >=0:
-                            log_list.append( 's'+str(strenghtned))
-                        if weakened>=0:
-                            log_list.append( 'w'+str(weakened))
+                        for layer in self.layers:
+                            # In and out from the layer class are passed tf variables
+                            start = time.time()
+                            curr_input= layer.makeOperation( curr_input)
+                            end = time.time()
+                            log_list.append( str( round( end - start)))
+                            strenghtned,weakened = layer.getSynapseChangeInfo()
+                            if strenghtned >=0:
+                                log_list.append( 's:'+str(strenghtned))
+                            '''
+                            if weakened>=0:
+                                log_list.append( 'w:'+str(weakened))
+                            '''
 
                 if self.phase != 'Learning':
                     features = self.lastMaxPooling( self.layers[-1].oldPotentials,\
@@ -211,12 +234,12 @@ class SpikingConvNet(object):
 
 
 if __name__ == '__main__':
-    start_from_scratch = True
-    #start_from_scratch = False
-    number_of_images = 1
-    phase = "Learning"
+    #start_from_scratch = True
+    start_from_scratch = False
+    number_of_images = 15
+    #phase = "Learning"
     #phase = "Training"
-    #phase = "Testing"
+    phase = "Testing"
     scn= SpikingConvNet( phase,start_from_scratch)
     scn.evolutionLoop( number_of_images)
  

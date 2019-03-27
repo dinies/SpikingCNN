@@ -1,5 +1,7 @@
 import SpikingConvNet
+import matplotlib.pyplot as plt
 import numpy as np
+
 '''
 start_from_scratch = False
 phase = "Unused"
@@ -8,9 +10,9 @@ scn= SpikingConvNet.SpikingConvNet( phase,start_from_scratch)
 magnitude_vec = scn.getTotalWeightsStats()
 print( magnitude_vec)
 '''
-a_plus = .5
-a_minus = -.1
-a_decay = -.0
+a_plus = .008
+a_minus = -.0
+a_decay = -.008
 
 def modifyW( weight, a, n_times = 1):
     w = weight
@@ -20,9 +22,22 @@ def modifyW( weight, a, n_times = 1):
 
 
 w_init = 0.5
-w_final = modifyW( w_init, a_plus,  1)
-print( w_final)
+w_all_curr = w_init
+w_up_curr = w_init
+epochs = range(1000)
+w_all_s = [ ]
+w_up_s = [ ]
+for _ in epochs:
+    w_all_s.append(w_all_curr)
+    w_up_s.append(w_up_curr)
+    w_all_curr = modifyW( w_all_curr, a_plus, 0)
+    w_all_curr = modifyW( w_all_curr, a_decay,1)
+    w_up_curr = modifyW( w_up_curr, a_plus, 1)
 
+fig, ax1 = plt.subplots(1, 1, figsize=(17, 11.5), tight_layout=True)
+ax1.plot(epochs, w_all_s, 'r')
+ax1.plot(epochs, w_up_s, 'b')
+plt.show()
 
 '''
 
