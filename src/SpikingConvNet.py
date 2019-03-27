@@ -39,14 +39,29 @@ class SpikingConvNet(object):
 
         stdp_flag = phase == 'Learning'
 
+        ''' after 20 img the first layer converges
+        the second has some weights around 1 and the others
+        are in the initial value range : .68 score 
+        encoding_t,.02,-.0,-.02, stdp_flag ),
+        encoding_t,.006,-.0,-.002, stdp_flag),
+        '''
+
+        '''after some img both layers converges
+        with scary simmetry of weights around 0
+        and around 1: same number
+        score 0.67
+        encoding_t,.01,-.0,-.012, stdp_flag ),
+        encoding_t,.01,-.0,-.02, stdp_flag),
+        maybe try a slower convergence
+        '''
         self.layers = [
             ConvolutionalLayer(padding, strides_conv,
                 [5,5,1,4],11.1, [1,160,250,1], [1,160,250,4],
-                encoding_t,.02,-.0,-.02, stdp_flag ),
+                encoding_t,.01,-.0,-.012, stdp_flag ),
             PoolingLayer(padding, [6,6], [7,7], pooling_type, [1,27,42,4]),
             ConvolutionalLayer(padding,strides_conv,
-                [17,17,4,20], 45., [1,27,42,4], [1,27,42,20],
-                encoding_t,.006,-.0,-.002, stdp_flag),
+                [17,17,4,20], 65., [1,27,42,4], [1,27,42,20],
+                encoding_t,.01,-.0,-.02, stdp_flag),
             PoolingLayer(padding, [5,5], [5,5], pooling_type, [1,6,9,20]),
             ConvolutionalLayer(padding, strides_conv,
                 [5,5,20,20], math.inf , [1,6,9,20], [1,6,9,20],
@@ -221,7 +236,7 @@ class SpikingConvNet(object):
 if __name__ == '__main__':
     #start_from_scratch = True
     start_from_scratch = False
-    number_of_images = 40
+    number_of_images = 15
     #phase = "Learning"
     #phase = "Training"
     phase = "Testing"
