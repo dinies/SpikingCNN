@@ -47,8 +47,21 @@ class ConvolutionalLayer(Layer):
         self.resetStoredData()
 
     def createWeights(self):
-        self.weights = np.ones(self.filter_dim)*0.5
+        mu = 0.5
+        std_dev = 0.1
+        weights = np.random.normal(mu,std_dev,self.filter_dim)
+        [rows, cols,ch_ins,ch_outs] = weights.shape
+        for r,c,ch_in,ch_out in itertools.product( range(rows),range(cols),range(ch_ins),range(ch_outs)):
+            w= weights[ r,c,ch_in,ch_out]
+            if w > 1.:
+                w = 1
+                print('outlier positive')
+            elif w < 0.:
+                w = 0
+                print('outlier negative')
 
+        self.weights = weights
+     
     def loadWeights(self,path,layer_index):
         self.weights = np.load( path + 'weight_'+ str(layer_index)+ '.npy')
 
