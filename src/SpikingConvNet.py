@@ -56,12 +56,12 @@ class SpikingConvNet(object):
         '''
         self.layers = [
             ConvolutionalLayer(padding, strides_conv,
-                [5,5,1,4],11.1, [1,160,250,1], [1,160,250,4],
-                encoding_t,.01,-.0,-.012, stdp_flag ),
+                [5,5,1,4],10.1, [1,160,250,1], [1,160,250,4],
+                encoding_t,.004,-.0,-.008, stdp_flag ),
             PoolingLayer(padding, [6,6], [7,7], pooling_type, [1,27,42,4]),
             ConvolutionalLayer(padding,strides_conv,
                 [17,17,4,20], 65., [1,27,42,4], [1,27,42,20],
-                encoding_t,.01,-.0,-.02, stdp_flag),
+                encoding_t,.002,-.0,-.004, stdp_flag),
             PoolingLayer(padding, [5,5], [5,5], pooling_type, [1,6,9,20]),
             ConvolutionalLayer(padding, strides_conv,
                 [5,5,20,20], math.inf , [1,6,9,20], [1,6,9,20],
@@ -236,7 +236,7 @@ class SpikingConvNet(object):
 if __name__ == '__main__':
     #start_from_scratch = True
     start_from_scratch = False
-    number_of_images = 15
+    number_of_images = 30
     #phase = "Learning"
     #phase = "Training"
     phase = "Testing"

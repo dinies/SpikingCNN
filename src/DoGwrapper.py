@@ -47,6 +47,9 @@ class DoGwrapper(object):
 
 
 
+    '''
+    Deprecated
+    '''
 
     def printSpikeSeries(self, st):
         path_img = self.img_dict['path']       
