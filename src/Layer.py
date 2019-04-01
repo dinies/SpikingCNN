@@ -14,7 +14,7 @@ class Layer( ABC):
         self.expected_output_dim = expected_output_dim
 
     @abstractmethod
-    def makeOperation( self, input_to_layer):
+    def makeOperation( self, input_to_layer, flag_plots):
         pass
 
     @abstractmethod
