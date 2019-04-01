@@ -3,7 +3,7 @@ from PoolingLayer import PoolingLayer
 
 import tensorflow as tf
 import tensorflow.contrib.eager as tfe
-import DoGwrapper 
+import DoGwrapper
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.random
@@ -23,15 +23,16 @@ class SpikingConvNet(object):
         encoding_t = 15
         self.encoding_t = encoding_t
         self.phase = phase
-        path = dirname(dirname(realpath(__file__)))
+        #path = dirname(dirname(realpath(__file__)))
+        path = 'C:/Users/gianl/Documents/Git/SpikingCNN'
         self.path_to_img_folder = path + '/datasets/'+ phase + 'Set/'
         classifier_dataset_path = path + '/datasets/ClassifierSet/'
         self.classifier_training_dataset_path = classifier_dataset_path +'TrainingData.csv'
         self.classifier_testing_dataset_path = classifier_dataset_path +'TestingData.csv'
         self.start_from_scratch = start_from_scratch
-        self.path_to_log_file = path+ '/logs/log.csv'
+        self.path_to_log_file = path+ "/logs/log.csv"
 
-        self.pathWeights = path + '/weights/'
+        self.pathWeights = path + "/weights/"
 
         strides_conv= [1,1,1,1]
         padding= "SAME"
@@ -41,7 +42,7 @@ class SpikingConvNet(object):
 
         ''' after 20 img the first layer converges
         the second has some weights around 1 and the others
-        are in the initial value range : .68 score 
+        are in the initial value range : .68 score
         encoding_t,.02,-.0,-.02, stdp_flag ),
         encoding_t,.006,-.0,-.002, stdp_flag),
         '''
@@ -56,12 +57,12 @@ class SpikingConvNet(object):
         '''
         self.layers = [
             ConvolutionalLayer(padding, strides_conv,
-                [5,5,1,4],11.1, [1,160,250,1], [1,160,250,4],
-                encoding_t,.01,-.0,-.012, stdp_flag ),
+                [5,5,1,4],11.15, [1,160,250,1], [1,160,250,4],
+                encoding_t,.016,-.0,-.02, stdp_flag ),
             PoolingLayer(padding, [6,6], [7,7], pooling_type, [1,27,42,4]),
             ConvolutionalLayer(padding,strides_conv,
                 [17,17,4,20], 65., [1,27,42,4], [1,27,42,20],
-                encoding_t,.01,-.0,-.02, stdp_flag),
+                encoding_t,.006,-.0,-.002, stdp_flag),
             PoolingLayer(padding, [5,5], [5,5], pooling_type, [1,6,9,20]),
             ConvolutionalLayer(padding, strides_conv,
                 [5,5,20,20], math.inf , [1,6,9,20], [1,6,9,20],
@@ -104,7 +105,7 @@ class SpikingConvNet(object):
             fw.writerow( feature_list)
 
     def getImgPaths( self, number_of_images ):
-        img_dicts = [] 
+        img_dicts = []
         path_to_faces = self.path_to_img_folder+'FaceToDo/'
         path_to_motors = self.path_to_img_folder+'MotorToDo/'
 
@@ -119,7 +120,7 @@ class SpikingConvNet(object):
                         'path': path_to_faces + img_name,
                         'name': img_name,
                         'label':'Face'
-                    }                               
+                    }
 
                 elif os.listdir( path_to_motors):
 
@@ -128,14 +129,14 @@ class SpikingConvNet(object):
                         'path': path_to_motors + img_name ,
                         'name': img_name,
                         'label':'Motor'
-                    }                               
+                    }
                 curr_trial +=1
                 if dictImg not in img_dicts:
                     img_chosen = True
                     img_dicts.append( dictImg)
 
         return  img_dicts
-     
+
 
     def moveImgInDoneFolder( self, img_dict):
         old_path = img_dict['path']
@@ -190,14 +191,14 @@ class SpikingConvNet(object):
                 log_list = [ self.phase, img['label'],img['name'] ]
                 DoG = DoGwrapper.DoGwrapper( img ,self.encoding_t )
                 st = DoG.getSpikeTrains()
-               
+
                 for i in range(st.shape[2]):
                     if i is not 0: #first is always blank
                         dogSlice = st[:,:,i]
                         reshapedDogSlice=dogSlice.reshape([1,dogSlice.shape[0],dogSlice.shape[1],1])
                         curr_input = tf.constant( reshapedDogSlice)
                         log_list.append( 'sT:'+str(i))
-               
+
                         for layer in self.layers:
                             # In and out from the layer class are passed tf variables
                             start = time.time()
@@ -234,12 +235,11 @@ class SpikingConvNet(object):
 
 
 if __name__ == '__main__':
-    #start_from_scratch = True
-    start_from_scratch = False
-    number_of_images = 15
-    #phase = "Learning"
+    start_from_scratch = True
+    #start_from_scratch = False
+    number_of_images = 2
+    phase = "Learning"
     #phase = "Training"
-    phase = "Testing"
+    #phase = "Testing"
     scn= SpikingConvNet( phase,start_from_scratch)
     scn.evolutionLoop( number_of_images)
- 
