@@ -1,11 +1,12 @@
 import context
 from src.Layer import *
 
+import matplotlib.pyplot as plt
 
 class ConvolutionalLayer(Layer):
 
     def __init__(self, padding_type, stride, filter_dim, threshold_potential,\
-            expected_input_dim, expected_output_dim, encoding_t,\
+            expected_input_dim, expected_output_dim, encoding_t, stdp_threshold,\
             a_plus = 0.02, a_minus = -0.01, a_decay = -0.001, stdp_flag = True):
 
         super().__init__( padding_type, stride, expected_output_dim)
@@ -15,6 +16,7 @@ class ConvolutionalLayer(Layer):
         self.oldPotentials = tfe.Variable( np.zeros( expected_output_dim ))
         self.K_inh = np.ones(( expected_output_dim[1], expected_output_dim[2])).astype(np.uint8)
         self.encoding_t = encoding_t
+        self.stdp_threshold = stdp_threshold
         self.spikes_presyn = np.zeros(  expected_input_dim +[self.encoding_t])
         self.spikes_postsyn = np.zeros(  expected_output_dim +[self.encoding_t])
         self.curr_iteration = 0
@@ -54,10 +56,10 @@ class ConvolutionalLayer(Layer):
         for r,c,ch_in,ch_out in itertools.product( range(rows),range(cols),range(ch_ins),range(ch_outs)):
             w= weights[ r,c,ch_in,ch_out]
             if w > 1.:
-                w = 1
+                weights[ r,c,ch_in,ch_out]= 1
                 print('outlier positive')
             elif w < 0.:
-                w = 0
+                weights[ r,c,ch_in,ch_out]= 0
                 print('outlier negative')
 
         self.weights = weights
@@ -78,6 +80,8 @@ class ConvolutionalLayer(Layer):
             w= self.weights[ r,c,ch_in,ch_out]
             if w > 1. or w < 0. :
                 print( 'weight out of bounds [0, 1] with val: '+str(w))
+            elif w == 1:
+                array_counter[-1] += 1
             else:
                 index = math.floor(w*10)
                 array_counter[index] += 1
@@ -86,7 +90,7 @@ class ConvolutionalLayer(Layer):
     def getSynapseChangeInfo(self):
         return self.counter_strenghtened, self.counter_weakened
 
-    def makeOperation( self, input_to_layer ):
+    def makeOperation( self, input_to_layer, flag_plots = False):
         input_filter = tfe.Variable( self.weights )
         out_conv = tf.nn.conv2d(input_to_layer,input_filter,self.stride,self.padding_type)
 
@@ -97,9 +101,15 @@ class ConvolutionalLayer(Layer):
         [_, rows, cols, channels] = newPotentialsNp.shape
 
         for row, column, channel in itertools.product(range(rows),range(cols),range(channels)):
-            if newPotentialsNp[0,row,column,channel] >= self.threshold_potential:
+            if newPotentialsNp[0,row,column,channel] >= self.threshold_potential and self.K_inh[ row, column]==1 :
                 currSpikesNp[0, row, column, channel ] = 1.0
-                newPotentialsNp[0, row, column, channel ] = 0.0
+                # newPotentialsNp[0, row, column, channel ] = 0.0
+
+        if flag_plots:
+            K_inh_before = self.K_inh.copy()
+            old_weights = self.weights.copy()
+            old_spikes = currSpikesNp.copy()
+
         S, K_inh = self.lateral_inh_CPU( currSpikesNp, newPotentialsNp, self.K_inh)
         self.K_inh = K_inh
 
@@ -116,6 +126,85 @@ class ConvolutionalLayer(Layer):
 
         self.curr_iteration +=1
 
+
+
+        if flag_plots:
+            if self.curr_iteration  > 0:
+                input_slice = input_to_layer.numpy()
+                input_slice_r = input_slice.reshape([self.expected_input_dim[1],self.expected_input_dim[2]])
+                out_conv_np = out_conv.numpy()
+                outs = []
+                for k in range( self.expected_output_dim[3]):
+                    out_k = out_conv_np[:,:,:,k].reshape([self.expected_output_dim[1],self.expected_output_dim[2]]) 
+                    outs.append( out_k)
+
+        
+                plt.figure( figsize=( 25,8))
+                ax1 = plt.subplot( 121)
+                ax1.imshow( input_slice_r)
+                ax1.set_title('Input to layer')
+
+                ax2 = plt.subplot( 243)
+                ax2.imshow( outs[0])
+
+                ax3 = plt.subplot( 244)
+                ax3.imshow( outs[1])
+                        
+                ax4 = plt.subplot( 247)
+                ax4.imshow( outs[2])
+                           
+                ax5 = plt.subplot( 248)
+                ax5.imshow( outs[3])
+
+
+                spikes_before = []
+                spikes_after= []
+                for k in range( self.expected_output_dim[3]):
+                    spike_b_k = old_spikes[:,:,:,k].reshape([self.expected_output_dim[1],self.expected_output_dim[2]]) 
+                    spike_a_k = S[:,:,:,k].reshape([self.expected_output_dim[1],self.expected_output_dim[2]]) 
+                    spikes_before.append( spike_b_k)
+                    spikes_after.append( spike_a_k)
+
+                fig1, axes1 = plt.subplots(2, 5, figsize=(25, 10), tight_layout=True)
+
+                axes1[0][0].imshow( spikes_before[0])
+                axes1[0][0].set_title('Spikes before inhibition')
+                axes1[0][1].imshow( spikes_before[1])
+                axes1[0][2].imshow( spikes_before[2])
+                axes1[0][3].imshow( spikes_before[3])
+                axes1[0][4].imshow( K_inh_before)
+                axes1[0][4].set_title('K before inhibition')
+
+                axes1[1][0].imshow( spikes_after[0])
+                axes1[1][0].set_title('Spikes after inhibition')
+                axes1[1][1].imshow( spikes_after[1])
+                axes1[1][2].imshow( spikes_after[2])
+                axes1[1][3].imshow( spikes_after[3])
+                axes1[1][4].imshow( K_inh)
+                axes1[1][4].set_title('K after inhibition')
+
+                neuronal_maps_before_STDP = []
+                neuronal_maps_after_STDP = []
+                for k in range( self.filter_dim[3]):
+                    map_b_k = old_weights[:,:,:,k].reshape([self.filter_dim[0],self.filter_dim[1]]) 
+                    map_a_k = self.weights[:,:,:,k].reshape([self.filter_dim[0],self.filter_dim[1]]) 
+                    neuronal_maps_before_STDP.append( map_b_k)
+                    neuronal_maps_after_STDP.append( map_a_k)
+
+                fig2, axes2 = plt.subplots(2, 4, figsize=(25, 10), tight_layout=True)
+
+                axes2[0][0].imshow( neuronal_maps_before_STDP[0])
+                axes2[0][0].set_title('Weights before STDP')
+                axes2[0][1].imshow( neuronal_maps_before_STDP[1])
+                axes2[0][2].imshow( neuronal_maps_before_STDP[2])
+                axes2[0][3].imshow( neuronal_maps_before_STDP[3])
+
+                axes2[1][0].imshow( neuronal_maps_after_STDP[0])
+                axes2[1][0].set_title('Weights after STDP')
+                axes2[1][1].imshow( neuronal_maps_after_STDP[1])
+                axes2[1][2].imshow( neuronal_maps_after_STDP[2])
+                axes2[1][3].imshow( neuronal_maps_after_STDP[3])
+
         return currSpikes
 
    
@@ -126,14 +215,18 @@ class ConvolutionalLayer(Layer):
         self.counter_weakened = 0
 
         for r_out, c_out, ch_out in itertools.product( range(rows_out),range(cols_out),range(channels_out)):
+            current_matches = []
             if self.spikes_postsyn[0,r_out,c_out,ch_out,self.curr_iteration] == 1:
                 for [in_row , in_col , r_w, c_w] in self.map_deconvolution_indexes[str(r_out)+','+str(c_out)] :   
                     for ch_in, t_input in itertools.product( range(channels_in),range( self.curr_iteration+1)):
                         presyn_neuron = self.spikes_presyn[0,in_row,in_col,ch_in,t_input]
                         if presyn_neuron == 1:
-                            self.counter_strenghtened +=1
-                            w= self.weights[r_w,c_w,ch_in,ch_out]
-                            self.weights[r_w,c_w,ch_in,ch_out] = modifyWeight(w,self.a_plus)
+                            current_matches.append( [r_w,c_w,ch_in])
+                if len( current_matches) >= self.stdp_threshold*self.curr_iteration:
+                    self.counter_strenghtened += len( current_matches)
+                    for [ r_w,c_w,ch_in]  in current_matches:
+                        w= self.weights[r_w,c_w,ch_in,ch_out]
+                        self.weights[r_w,c_w,ch_in,ch_out] = modifyWeight(w,self.a_plus)
 
         self.weights += self.a_decay * self.weights * ( 1 - self.weights)       
 

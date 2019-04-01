@@ -97,6 +97,7 @@ class DoGwrapper(object):
     def testWithOneImgDepthMap(self):
         path = dirname(dirname(realpath(__file__)))
         path_img = path + '/datasets/TrainingSet/Face/image_0297.jpg'
+        path_img = path + '/datasets/LearningSet/Motor/motor_0127.jpg'
         st = self.applyDoGFilter( path_img)
 
         st = np.expand_dims(st, axis=2)
@@ -142,4 +143,4 @@ class DoGwrapper(object):
 
 if __name__ == '__main__':
     dog = DoGwrapper([])
-    dog.testWithOneImg()
+    dog.testWithOneImgDepthMap()
