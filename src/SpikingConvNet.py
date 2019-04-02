@@ -73,12 +73,12 @@ class SpikingConvNet(object):
 
         self.layers = [
             ConvolutionalLayer(padding, strides_conv,
-                [5,5,1,4],1.1, [1,160,250,1], [1,160,250,4],
-                encoding_t,15,.004,-.0,-.008, stdp_flag ),
+                [5,5,1,4],3.7, [1,160,250,1], [1,160,250,4],
+                encoding_t,18,.004,-.0,-.008, stdp_flag ),
             PoolingLayer(padding, [6,6], [7,7], pooling_type, [1,27,42,4]),
             ConvolutionalLayer(padding,strides_conv,
                 [17,17,4,20], 25., [1,27,42,4], [1,27,42,20],
-                encoding_t,20,.002,-.0,-.004, stdp_flag),
+                encoding_t,28,.002,-.0,-.004, stdp_flag),
             PoolingLayer(padding, [5,5], [5,5], pooling_type, [1,6,9,20]),
             ConvolutionalLayer(padding, strides_conv,
                 [5,5,20,20], math.inf , [1,6,9,20], [1,6,9,20],

@@ -241,7 +241,7 @@ class ConvolutionalLayer(Layer):
 
 
     # BEGIN Function borrowed from the paper autors
-    @jit
+    # @jit
     def lateral_inh_CPU(self, S, V, K_inh):
         S_inh = np.ones(S.shape, dtype=S.dtype)
         K = np.ones(K_inh.shape, dtype=K_inh.dtype)
@@ -251,7 +251,7 @@ class ConvolutionalLayer(Layer):
                     flag = False
                     if S[0,i, j, k] != 1:
                         continue
-                    if K_inh[i, j] == 0:
+                    if K_inh[i, j] == 0 or K[i,j] == 0:
                         S_inh[0,i, j, k] = 0
                         self.inhibited_counter +=1
                         continue
@@ -264,8 +264,8 @@ class ConvolutionalLayer(Layer):
                         continue
                     else:
                         K[i, j] = 0
-        S *= S_inh
-        K_inh *= K
+        S = np.multiply( S, S_inh)
+        K_inh = np.multiply( K_inh, K)
         return S, K_inh
     # END Function borrowed from the paper autors
 
