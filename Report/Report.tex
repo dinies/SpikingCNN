@@ -118,8 +118,16 @@ C_{l} = \sum_{f}\sum_{i}w_{f,i}(1-w_{f,i})/n_{w}
 where $ n_{w} $ is the total number of synaptic weights in that layer and $ w_{f,i} $ is the \textit{i-th} synaptic weight of the \textit{f-th} feature.
 
 \subsection{Classification}
-The third pooling layer is used for the classification, so that each neuron belonging to this layer performs a global max pooling over the corresponding neuronal maps in the previous convolutional layer. Then, one feature can be described by only one output value that is used to train a linear SVM classifier and determining the object's category.
+In regards of the images classification section, a dataset of labeled features is built with the output of the global max pooling layer, which in this case gives a vector of twenty elements that represent the greatest potentials reached by the neuronal maps in the third convolutional layer.\\
+In fact the activation threshold of the neurons belonging to the last layer has been set to an infinite positive value, since has been choosen not to incurr in the reset of the potentials due to neurons spiking.\\
+The resulting dataset then is standardised and splitted in training and testing sets in order to be feeded in a linear SVM.
+
+
+%The third pooling layer is used for the classification, so that each neuron belonging to this layer performs a global max pooling over the corresponding neuronal maps in the previous convolutional layer. Then, one feature can be described by only one output value that is used to train a linear SVM classifier and determining the object's category.
 \section{Results}
+The spiking convolutional net has been tested with a binary dataset containing a few hundred images for both classes, namely motor-bikes and human faces.
+
+
 
 \section{Conclusions}
 

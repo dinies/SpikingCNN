@@ -34,7 +34,7 @@ class Layer( ABC):
         pass
 
     @abstractmethod
-    def getSynapseChangeInfo(self):
+    def getIterationInfo(self):
         pass
 
     @abstractmethod

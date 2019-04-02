@@ -93,6 +93,60 @@ class DoGwrapper(object):
             i +=1
         return tempMap
 
+    def testPlotReport(self):
+        path = dirname(dirname(realpath(__file__)))
+        path_face = path + '/datasets/LearningSet/Face/image_0231.jpg'
+        path_motor = path + '/datasets/LearningSet/Motor/motor_0011.jpg'
+
+        st_face = self.applyDoGFilter( path_face)
+        st_motor= self.applyDoGFilter( path_motor)
+
+        st_face_expanded = np.expand_dims(st_face, axis=2)
+        st_motor_expanded = np.expand_dims(st_motor, axis=2)
+        face_image = Image.open(path_face)
+        motor_image = Image.open(path_motor)
+        face_tempMap = self.obtainTemperatureMap(st_face_expanded)
+        motor_tempMap = self.obtainTemperatureMap(st_motor_expanded)
+
+        fig1 , axes1 = plt.subplots(1, 2, figsize=(16, 5), tight_layout=True)
+        axes1[0].imshow(face_image )
+        axes1[0].axis('off')
+        axes1[1].imshow(face_tempMap )
+        axes1[1].axis('off')
+
+        fig2 , axes2 = plt.subplots(2, 2, figsize=(16, 10), tight_layout=True)
+        axes2[0][0].imshow( st_face[:,:,1])
+        axes2[0][0].axis('off')
+        axes2[0][1].imshow( st_face[:,:,2])
+        axes2[0][1].axis('off')
+        axes2[1][0].imshow( st_face[:,:,3])
+        axes2[1][0].axis('off')
+        axes2[1][1].imshow( st_face[:,:,4])
+        axes2[1][1].axis('off')
+
+        fig3 , axes3 = plt.subplots(1, 2, figsize=(16, 5), tight_layout=True)
+        axes3[0].imshow(motor_image )
+        axes3[0].axis('off')
+        axes3[1].imshow(motor_tempMap )
+        axes3[1].axis('off')
+
+        fig4 , axes4 = plt.subplots(2, 2, figsize=(16, 10), tight_layout=True)
+        axes4[0][0].imshow( st_motor[:,:,1])
+        axes4[0][0].axis('off')
+        axes4[0][1].imshow( st_motor[:,:,2])
+        axes4[0][1].axis('off')
+        axes4[1][0].imshow( st_motor[:,:,3])
+        axes4[1][0].axis('off')
+        axes4[1][1].imshow( st_motor[:,:,4])
+        axes4[1][1].axis('off')
+
+        fig1.savefig(path + '/images/face_temp')
+        fig2.savefig(path + '/images/face_dog_out')
+        fig3.savefig(path + '/images/motor_temp')
+        fig4.savefig(path + '/images/motor_dog_out')
+
+
+
 
     def testWithOneImgDepthMap(self):
         path = dirname(dirname(realpath(__file__)))
@@ -142,5 +196,5 @@ class DoGwrapper(object):
 
 
 if __name__ == '__main__':
-    dog = DoGwrapper([])
-    dog.testWithOneImgDepthMap()
+    dog = DoGwrapper([], 10)
+    dog.testPlotReport()

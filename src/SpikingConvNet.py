@@ -20,7 +20,7 @@ tf.enable_eager_execution()
 
 class SpikingConvNet(object):
     def __init__(self,  phase, start_from_scratch= False ):
-        encoding_t = 15
+        encoding_t = 10
         self.encoding_t = encoding_t
         self.phase = phase
         path = dirname(dirname(realpath(__file__)))
@@ -54,15 +54,31 @@ class SpikingConvNet(object):
         encoding_t,.01,-.0,-.02, stdp_flag),
         maybe try a slower convergence
         '''
+        '''
+        self.layers = [
+            ConvolutionalLayer(padding, strides_conv,
+                [5,5,1,4],6.5, [1,160,250,1], [1,160,250,4],
+                encoding_t,5,.004,-.0,-.008, stdp_flag ),
+            PoolingLayer(padding, [6,6], [7,7], pooling_type, [1,27,42,4]),
+            ConvolutionalLayer(padding,strides_conv,
+                [17,17,4,20], 35., [1,27,42,4], [1,27,42,20],
+                encoding_t,25,.002,-.0,-.004, stdp_flag),
+            PoolingLayer(padding, [5,5], [5,5], pooling_type, [1,6,9,20]),
+            ConvolutionalLayer(padding, strides_conv,
+                [5,5,20,20], math.inf , [1,6,9,20], [1,6,9,20],
+                encoding_t,0,.0,-.0,-.0, stdp_flag)
+            ]
+
+        '''
 
         self.layers = [
             ConvolutionalLayer(padding, strides_conv,
                 [5,5,1,4],1.1, [1,160,250,1], [1,160,250,4],
-                encoding_t,20,.004,-.0,-.008, stdp_flag ),
+                encoding_t,15,.004,-.0,-.008, stdp_flag ),
             PoolingLayer(padding, [6,6], [7,7], pooling_type, [1,27,42,4]),
             ConvolutionalLayer(padding,strides_conv,
-                [17,17,4,20], 35., [1,27,42,4], [1,27,42,20],
-                encoding_t,30,.002,-.0,-.004, stdp_flag),
+                [17,17,4,20], 25., [1,27,42,4], [1,27,42,20],
+                encoding_t,20,.002,-.0,-.004, stdp_flag),
             PoolingLayer(padding, [5,5], [5,5], pooling_type, [1,6,9,20]),
             ConvolutionalLayer(padding, strides_conv,
                 [5,5,20,20], math.inf , [1,6,9,20], [1,6,9,20],
@@ -195,30 +211,30 @@ class SpikingConvNet(object):
                 '''
                 for i in range(st.shape[2]):
                 '''
-                for i in range(5):
+                for i in range(4):
                     if i is not 0: #first is always blank
                         dogSlice = st[:,:,i]
                         reshapedDogSlice=dogSlice.reshape([1,dogSlice.shape[0],dogSlice.shape[1],1])
                         curr_input = tf.constant( reshapedDogSlice)
-                        log_list.append( 'sT:'+str(i))
+                        log_list.append( 'sli_'+str(i))
 
                         layer_counter= 0
                
                         for layer in self.layers:
                             # In and out from the layer class are passed tf variables
                             start = time.time()
-                            # flag_plots = layer_counter <=1
-                            flag_plots = False
+                            flag_plots = layer_counter <=1
+                            #flag_plots = False
                             curr_input= layer.makeOperation( curr_input, flag_plots)
                             end = time.time()
                             log_list.append( str( round( end - start)))
-                            strenghtned,weakened = layer.getSynapseChangeInfo()
-                            if strenghtned >=0:
-                                log_list.append( 's:'+str(strenghtned))
-                            '''
-                            if weakened>=0:
-                                log_list.append( 'w:'+str(weakened))
-                            '''
+                            strenghtned,weakened,spiked,inhibited = layer.getIterationInfo()
+                            if( spiked >=0):
+                                log_list.append( 'spi_'+str(spiked))
+                            if( inhibited >=0):
+                                log_list.append( 'inh_'+str(inhibited))
+                            if( strenghtned >=0):
+                                log_list.append( 'str_'+str(strenghtned))
                             layer_counter +=1
 
                 if self.phase != 'Learning':
@@ -244,12 +260,12 @@ class SpikingConvNet(object):
 
 
 if __name__ == '__main__':
-    #start_from_scratch = True
-    start_from_scratch = False
-    number_of_images = 450
-    #phase = "Learning"
+    start_from_scratch = True
+    #start_from_scratch = False
+    number_of_images = 1
+    phase = "Learning"
     #phase = "Training"
-    phase = "Testing"
+    #phase = "Testing"
     scn= SpikingConvNet( phase,start_from_scratch)
     scn.evolutionLoop( number_of_images)
  
