@@ -2,7 +2,7 @@
 \contentsline {section}{\numberline {1}Network architecture}{3}{section.1}
 \contentsline {subsection}{\numberline {1.1}Temporal coding}{4}{subsection.1.1}
 \contentsline {subsection}{\numberline {1.2}Convolutional and pooling layers}{5}{subsection.1.2}
-\contentsline {subsection}{\numberline {1.3}STDP-based learning}{6}{subsection.1.3}
+\contentsline {subsection}{\numberline {1.3}STDP-based learning}{5}{subsection.1.3}
 \contentsline {subsection}{\numberline {1.4}Classification}{7}{subsection.1.4}
 \contentsline {section}{\numberline {2}Results}{7}{section.2}
-\contentsline {section}{\numberline {3}Conclusions}{7}{section.3}
+\contentsline {section}{\numberline {3}Conclusions}{8}{section.3}

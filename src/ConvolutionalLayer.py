@@ -27,6 +27,8 @@ class ConvolutionalLayer(Layer):
         self.stdp_flag = stdp_flag
         self.counter_strenghtened =0
         self.counter_weakened =0
+        self.spiked_counter=0
+        self.inhibited_counter=0
         self.map_deconvolution_indexes = createMapDeconvIndexes(\
                 filter_dim, expected_input_dim, expected_output_dim)
 
@@ -87,8 +89,8 @@ class ConvolutionalLayer(Layer):
                 array_counter[index] += 1
         return array_counter
                         
-    def getSynapseChangeInfo(self):
-        return self.counter_strenghtened, self.counter_weakened
+    def getIterationInfo(self):
+        return self.counter_strenghtened, self.counter_weakened, self.spiked_counter, self.inhibited_counter
 
     def makeOperation( self, input_to_layer, flag_plots = False):
         input_filter = tfe.Variable( self.weights )
@@ -99,10 +101,13 @@ class ConvolutionalLayer(Layer):
 
        
         [_, rows, cols, channels] = newPotentialsNp.shape
+        self.spiked_counter = 0
 
         for row, column, channel in itertools.product(range(rows),range(cols),range(channels)):
             if newPotentialsNp[0,row,column,channel] >= self.threshold_potential and self.K_inh[ row, column]==1 :
+
                 currSpikesNp[0, row, column, channel ] = 1.0
+                self.spiked_counter +=1
                 # newPotentialsNp[0, row, column, channel ] = 0.0
 
         if flag_plots:
@@ -110,6 +115,7 @@ class ConvolutionalLayer(Layer):
             old_weights = self.weights.copy()
             old_spikes = currSpikesNp.copy()
 
+        self.inhibited_counter= 0
         S, K_inh = self.lateral_inh_CPU( currSpikesNp, newPotentialsNp, self.K_inh)
         self.K_inh = K_inh
 
@@ -235,7 +241,7 @@ class ConvolutionalLayer(Layer):
 
 
     # BEGIN Function borrowed from the paper autors
-    @jit
+    # @jit
     def lateral_inh_CPU(self, S, V, K_inh):
         S_inh = np.ones(S.shape, dtype=S.dtype)
         K = np.ones(K_inh.shape, dtype=K_inh.dtype)
@@ -245,19 +251,21 @@ class ConvolutionalLayer(Layer):
                     flag = False
                     if S[0,i, j, k] != 1:
                         continue
-                    if K_inh[i, j] == 0:
+                    if K_inh[i, j] == 0 or K[i,j] == 0:
                         S_inh[0,i, j, k] = 0
+                        self.inhibited_counter +=1
                         continue
                     for kz in range(V.shape[3]):
                         if S[0,i, j, kz] == 1 and V[0,i, j, k] < V[0,i, j, kz]:
                             S_inh[0,i, j, k] = 0
+                            self.inhibited_counter +=1
                             flag = True
                     if flag:
                         continue
                     else:
                         K[i, j] = 0
-        S *= S_inh
-        K_inh *= K
+        S = np.multiply( S, S_inh)
+        K_inh = np.multiply( K_inh, K)
         return S, K_inh
     # END Function borrowed from the paper autors
 

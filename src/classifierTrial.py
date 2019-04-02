@@ -36,18 +36,10 @@ lin.fit(train_X_scaled, train_y)
 print( "linear model score: \n")
 print(lin.score(test_X_scaled, test_y))
 
-linSVC = LinearSVC(C=9.0)
+linSVC = LinearSVC(C=8.0)
 linSVC.fit(  train_X_scaled, train_y)
 print( "LinearSVC score: \n")
 print( linSVC.score( test_X_scaled, test_y))
-
-
-
-
-
-
-
-
 
 
 

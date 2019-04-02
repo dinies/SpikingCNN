@@ -63,8 +63,8 @@ class PoolingLayer(Layer):
     def saveWeights(self,path,layer_index):
         pass
  
-    def getSynapseChangeInfo(self):
-        return -1, -1
+    def getIterationInfo(self):
+        return -1, -1, -1, -1
 
     def getWeightsStatistics( self):
         return np.zeros( [10,1])

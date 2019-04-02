@@ -61,27 +61,7 @@ in which input spikes are integrated and new spikes are emitted if a certain thr
 \subsection{Temporal coding}
 
 In the very first part of the neural network, the input signal is encoded into temporal-discrete spike events. A Difference of Gaussians (DoG) filter is used to detect the contrasts in the input image and emit a spike, accordingly. The higher the contrast in a certain cell, the more strongly this one is activated in order to fire. The firing time (i.e. the time when the spike is emitted) of a DoG cell is inversely proportional to its activation value. In particular, if an \textit{r} output is obtained in a cell after DoG, its corresponding firing time will be $ \tau = 1/r $. DoG cells are sensitive to both positive and negative contrasts, depending on their two ON-centre and OFF-centre maps and they emit when their activation values exceed a predefined threshold.\\
-An example of DoG filter output is shown in figure \ref*{fig:dog}. In this picture, a face and a motor (image categories that compose the learning and training dataset) are encoded into discrete spike events.\\
-\begin{figure}[h]
-	\centering
-	\begin{minipage}[b]{0.48\textwidth}
-		\includegraphics[width=\textwidth]{images/dog_face1}
-	\end{minipage}
-	\hfill
-	\begin{minipage}[b]{0.493\textwidth}
-		\includegraphics[width=\textwidth]{images/dog_face2}
-	\end{minipage}
-	\\[0.8em]
-	\begin{minipage}[b]{0.498\textwidth}
-		\includegraphics[width=\textwidth]{images/dog_motor1}
-	\end{minipage}
-	\hfill
-	\begin{minipage}[b]{0.482\textwidth}
-		\includegraphics[width=\textwidth]{images/dog_motor2}
-	\end{minipage}
-	\caption{DoG temporal coding}
-	\label{fig:dog}
-\end{figure}
+An example of DoG filter output is shown in figure \ref*{fig:dog}. In this picture, a face and a motor (image categories that compose the learning and training dataset) are encoded into discrete spike events.
 
 \subsection{Convolutional and pooling layers}
 
@@ -118,9 +98,89 @@ C_{l} = \sum_{f}\sum_{i}w_{f,i}(1-w_{f,i})/n_{w}
 where $ n_{w} $ is the total number of synaptic weights in that layer and $ w_{f,i} $ is the \textit{i-th} synaptic weight of the \textit{f-th} feature.
 
 \subsection{Classification}
-The third pooling layer is used for the classification, so that each neuron belonging to this layer performs a global max pooling over the corresponding neuronal maps in the previous convolutional layer. Then, one feature can be described by only one output value that is used to train a linear SVM classifier and determining the object's category.
+In regards of the images classification section, a dataset of labeled features is built with the output of the global max pooling layer, which in this case gives a vector of twenty elements that represent the greatest potentials reached by the neuronal maps in the third convolutional layer.\\
+In fact the activation threshold of the neurons belonging to the last layer has been set to an infinite positive value, since has been choosen not to incurr in the reset of the potentials due to neurons spiking.\\
+The resulting dataset then is standardised and splitted in training and testing sets in order to be feeded in a linear SVM.
+
+
+%The third pooling layer is used for the classification, so that each neuron belonging to this layer performs a global max pooling over the corresponding neuronal maps in the previous convolutional layer. Then, one feature can be described by only one output value that is used to train a linear SVM classifier and determining the object's category.
+
 \section{Results}
 
+The spiking convolutional network has been applied over two main image categories: human faces and motorbikes. This dataset of 470 images has been divided into three main subfolders, for the learning, training and testing phases, respectively.
+It is possible to analyse what happens during the process, through the network.\\
+At the beginning, the input image (face or motor) is passed to the DoG filter that encodes the temporal information in 10 different layers. In the two upper images of figure \ref{fig:face}, it is possible to see input image and the contrasts highlighted by the DoG. In the remaining four images instead, the first four outputs of the filter are shown. The information is accumulated by augmenting the encoding layers.\\
+\begin{figure}[h]
+	\centering
+	\begin{minipage}[b]{\textwidth}
+		\includegraphics[width=\textwidth]{images/face_temp}
+	\end{minipage}
+	\\
+	\begin{minipage}[b]{\textwidth}
+		\includegraphics[width=\textwidth]{images/face_dog_out}
+	\end{minipage}
+	\caption{DoG temporal coding (face). Top-left: input image. Top-right: contrasts. Four images: first four encoding layers.}
+	\label{fig:face}
+\end{figure}\\
+In the same way, it is possible to see the DoG outputs for the \ref{fig:motor} category.\\
+\begin{figure}[h]
+	\centering
+	\begin{minipage}[b]{\textwidth}
+		\includegraphics[width=\textwidth]{images/motor_temp}
+	\end{minipage}
+	\\
+	\begin{minipage}[b]{\textwidth}
+		\includegraphics[width=\textwidth]{images/motor_dog_out}
+	\end{minipage}
+	\caption{DoG temporal coding (motor). Top-left: input image. Top-right: contrasts. Four images: first four encoding layers.}
+	\label{fig:motor}
+\end{figure}
+Once the outputs of the DoG filter are obtained, these are used in the first convolutional layer. The latter is defined by a $ 16\times250\times1 $ input dimension, $ 5\times5 $ filter,  input and output channel equal to 1 and 4, respectively.
+By iterating over the DoG output images, these are passed in sequence to the convolutional layer, that produces four different output images. These are shown in figure \ref{fig:conv_out}. 
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=\textwidth]{images/conv_output_slice3_cut}
+	\caption{Conv out}
+	\label{fig:conv_out}
+\end{figure}\\
+It can be interesting to see what are the neurons that spike right after the convolution. This information is reported in figure \ref{fig:s_k}, in which it is possible to see the spiking neurons before 
+S and K values:
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=\textwidth]{images/S_K_values_slice2}
+	\caption{S and K}
+	\label{fig:s_k}
+\end{figure}\\
+\begin{figure}[h]
+	\centering
+	\begin{minipage}[b]{0.32\textwidth}
+		\includegraphics[width=\textwidth]{images/K_1}
+	\end{minipage}
+	\hfill
+	\begin{minipage}[b]{0.32\textwidth}
+		\includegraphics[width=\textwidth]{images/K_2}
+	\end{minipage}
+	\hfill
+	\begin{minipage}[b]{0.32\textwidth}
+		\includegraphics[width=\textwidth]{images/K_3}
+	\end{minipage}
+	\caption{K}
+	\label{fig:k}
+\end{figure}
+Pooling:
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=\textwidth]{images/pool_slice1}
+	\caption{Pooling}
+	\label{fig:pool}
+\end{figure}\\
+Weights:
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=\textwidth]{images/weights_slice1}
+	\caption{Weights}
+	\label{fig:weights}
+\end{figure}\\
 \section{Conclusions}
 
 \clearpage
