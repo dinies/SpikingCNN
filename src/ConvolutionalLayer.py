@@ -234,7 +234,7 @@ class ConvolutionalLayer(Layer):
                         w= self.weights[r_w,c_w,ch_in,ch_out]
                         self.weights[r_w,c_w,ch_in,ch_out] = modifyWeight(w,self.a_plus)
 
-        self.weights += self.a_decay * self.weights * ( 1 - self.weights)       
+        self.weights= np.add(self.weights, np.multiply(self.a_decay, np.multiply( self.weights,  np.subtract( 1 , self.weights))))    
 
 
                
