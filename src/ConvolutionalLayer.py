@@ -51,8 +51,8 @@ class ConvolutionalLayer(Layer):
         self.resetStoredData()
 
     def createWeights(self):
-        mu = 0.5
-        std_dev = 0.1
+        mu = 0.8
+        std_dev = 0.05
         weights = np.random.normal(mu,std_dev,self.filter_dim)
         [rows, cols,ch_ins,ch_outs] = weights.shape
         for r,c,ch_in,ch_out in itertools.product( range(rows),range(cols),range(ch_ins),range(ch_outs)):
@@ -130,87 +130,192 @@ class ConvolutionalLayer(Layer):
 
         self.oldPotentials.assign( newPotentials)
 
+        '''
+        verifying check
+        ggg = 0
+        currSpikesVeryfication = currSpikes.numpy()
+        for row, column, channel in itertools.product(range(rows),range(cols),range(channels)):
+            if currSpikesVeryfication[0,row,column,channel] == 1.0 :
+                ggg += 1
+        print('current iteration: '+str(self.curr_iteration)+ ' remaining spikes: '+ str(ggg)+'\n')
+        '''
+         
         self.curr_iteration +=1
 
 
-
         if flag_plots:
-            if self.curr_iteration  > 0:
-                input_slice = input_to_layer.numpy()
-                input_slice_r = input_slice.reshape([self.expected_input_dim[1],self.expected_input_dim[2]])
-                out_conv_np = out_conv.numpy()
-                outs = []
-                for k in range( self.expected_output_dim[3]):
-                    out_k = out_conv_np[:,:,:,k].reshape([self.expected_output_dim[1],self.expected_output_dim[2]]) 
-                    outs.append( out_k)
+
+
+            input_slice = input_to_layer.numpy()
+            inputs = []
+            for k in range( self.expected_input_dim[3]):
+                in_k = input_slice[:,:,:,k].reshape([self.expected_input_dim[1],self.expected_input_dim[2]])
+                inputs.append( in_k)
+
+            out_conv_np = out_conv.numpy()
+            outs = []
+            for k in range( self.expected_output_dim[3]):
+                out_k = out_conv_np[:,:,:,k].reshape([self.expected_output_dim[1],self.expected_output_dim[2]]) 
+                outs.append( out_k)
+
+            spikes_before = []
+            spikes_after= []
+            for k in range( self.expected_output_dim[3]):
+                spike_b_k = old_spikes[:,:,:,k].reshape([self.expected_output_dim[1],self.expected_output_dim[2]]) 
+                spike_a_k = S[:,:,:,k].reshape([self.expected_output_dim[1],self.expected_output_dim[2]]) 
+                spikes_before.append( spike_b_k)
+                spikes_after.append( spike_a_k)
+
+
+            neuronal_maps_before_STDP = []
+            neuronal_maps_after_STDP = []
+            for i,j in itertools.product( range( self.filter_dim[2]), range( self.filter_dim[3])):
+                map_b_k = old_weights[:,:,i,j].reshape([self.filter_dim[0],self.filter_dim[1]]) 
+                map_a_k = self.weights[:,:,i,j].reshape([self.filter_dim[0],self.filter_dim[1]]) 
+                neuronal_maps_before_STDP.append( map_b_k)
+                neuronal_maps_after_STDP.append( map_a_k)
+
+
 
         
+            '''
+            1stLayer
+            '''
+            if  self.expected_output_dim == [1,160,250,4] :
+
+               
                 plt.figure( figsize=( 25,8))
                 ax1 = plt.subplot( 121)
-                ax1.imshow( input_slice_r)
+                ax1.imshow( inputs[0])
                 ax1.set_title('Input to layer')
-
                 ax2 = plt.subplot( 243)
                 ax2.imshow( outs[0])
-
                 ax3 = plt.subplot( 244)
                 ax3.imshow( outs[1])
-                        
                 ax4 = plt.subplot( 247)
                 ax4.imshow( outs[2])
-                           
                 ax5 = plt.subplot( 248)
                 ax5.imshow( outs[3])
 
 
-                spikes_before = []
-                spikes_after= []
-                for k in range( self.expected_output_dim[3]):
-                    spike_b_k = old_spikes[:,:,:,k].reshape([self.expected_output_dim[1],self.expected_output_dim[2]]) 
-                    spike_a_k = S[:,:,:,k].reshape([self.expected_output_dim[1],self.expected_output_dim[2]]) 
-                    spikes_before.append( spike_b_k)
-                    spikes_after.append( spike_a_k)
-
                 fig1, axes1 = plt.subplots(2, 5, figsize=(25, 10), tight_layout=True)
-
                 axes1[0][0].imshow( spikes_before[0])
                 axes1[0][0].set_title('Spikes before inhibition')
+                axes1[0][0].axis('off')
                 axes1[0][1].imshow( spikes_before[1])
+                axes1[0][1].axis('off')
                 axes1[0][2].imshow( spikes_before[2])
+                axes1[0][2].axis('off')
                 axes1[0][3].imshow( spikes_before[3])
+                axes1[0][3].axis('off')
                 axes1[0][4].imshow( K_inh_before)
                 axes1[0][4].set_title('K before inhibition')
+                axes1[0][4].axis('off')
 
                 axes1[1][0].imshow( spikes_after[0])
                 axes1[1][0].set_title('Spikes after inhibition')
+                axes1[1][0].axis('off')
                 axes1[1][1].imshow( spikes_after[1])
+                axes1[1][1].axis('off')
                 axes1[1][2].imshow( spikes_after[2])
+                axes1[1][2].axis('off')
                 axes1[1][3].imshow( spikes_after[3])
+                axes1[1][3].axis('off')
                 axes1[1][4].imshow( K_inh)
                 axes1[1][4].set_title('K after inhibition')
-
-                neuronal_maps_before_STDP = []
-                neuronal_maps_after_STDP = []
-                for k in range( self.filter_dim[3]):
-                    map_b_k = old_weights[:,:,:,k].reshape([self.filter_dim[0],self.filter_dim[1]]) 
-                    map_a_k = self.weights[:,:,:,k].reshape([self.filter_dim[0],self.filter_dim[1]]) 
-                    neuronal_maps_before_STDP.append( map_b_k)
-                    neuronal_maps_after_STDP.append( map_a_k)
+                axes1[1][4].axis('off')
 
                 fig2, axes2 = plt.subplots(2, 4, figsize=(25, 10), tight_layout=True)
-
                 axes2[0][0].imshow( neuronal_maps_before_STDP[0])
                 axes2[0][0].set_title('Weights before STDP')
+                axes2[0][0].axis('off')
                 axes2[0][1].imshow( neuronal_maps_before_STDP[1])
+                axes2[0][1].axis('off')
                 axes2[0][2].imshow( neuronal_maps_before_STDP[2])
+                axes2[0][2].axis('off')
                 axes2[0][3].imshow( neuronal_maps_before_STDP[3])
+                axes2[0][3].axis('off')
 
                 axes2[1][0].imshow( neuronal_maps_after_STDP[0])
                 axes2[1][0].set_title('Weights after STDP')
+                axes2[1][0].axis('off')
                 axes2[1][1].imshow( neuronal_maps_after_STDP[1])
+                axes2[1][1].axis('off')
                 axes2[1][2].imshow( neuronal_maps_after_STDP[2])
+                axes2[1][2].axis('off')
                 axes2[1][3].imshow( neuronal_maps_after_STDP[3])
+                axes2[1][3].axis('off')
 
+
+            '''
+            2nd layer
+            '''
+            if self.expected_output_dim == [1,27,42,20]:
+                plt.figure( figsize=( 25,8))
+                ax1 = plt.subplot( 121)
+                ax1.imshow( inputs[2])
+                ax1.set_title('Input to layer')
+                ax2 = plt.subplot( 243)
+                ax2.imshow( outs[2])
+                ax3 = plt.subplot( 244)
+                ax3.imshow( outs[7])
+                ax4 = plt.subplot( 247)
+                ax4.imshow( outs[12])
+                ax5 = plt.subplot( 248)
+                ax5.imshow( outs[18])
+
+
+                fig1, axes1 = plt.subplots(2, 5, figsize=(25, 10), tight_layout=True)
+                axes1[0][0].imshow( spikes_before[2])
+                axes1[0][0].set_title('Spikes before inhibition')
+                axes1[0][0].axis('off')
+                axes1[0][1].imshow( spikes_before[7])
+                axes1[0][1].axis('off')
+                axes1[0][2].imshow( spikes_before[12])
+                axes1[0][2].axis('off')
+                axes1[0][3].imshow( spikes_before[18])
+                axes1[0][3].axis('off')
+                axes1[0][4].imshow( K_inh_before)
+                axes1[0][4].set_title('K before inhibition')
+                axes1[0][4].axis('off')
+
+                axes1[1][0].imshow( spikes_after[2])
+                axes1[1][0].set_title('Spikes after inhibition')
+                axes1[1][1].imshow( spikes_after[7])
+                axes1[1][2].imshow( spikes_after[12])
+                axes1[1][3].imshow( spikes_after[18])
+                axes1[1][4].imshow( K_inh)
+                axes1[1][4].set_title('K after inhibition')
+
+                fig2, axes2 = plt.subplots(2, 6, figsize=(25, 10), tight_layout=True)
+                axes2[0][0].imshow( neuronal_maps_before_STDP[2])
+                axes2[0][0].set_title('Weights before STDP')
+                axes2[0][0].axis('off')
+                axes2[0][1].imshow( neuronal_maps_before_STDP[5])
+                axes2[0][1].axis('off')
+                axes2[0][2].imshow( neuronal_maps_before_STDP[9])
+                axes2[0][2].axis('off')
+                axes2[0][3].imshow( neuronal_maps_before_STDP[11])
+                axes2[0][3].axis('off')
+                axes2[0][4].imshow( neuronal_maps_before_STDP[15])
+                axes2[0][4].axis('off')
+                axes2[0][5].imshow( neuronal_maps_before_STDP[18])
+                axes2[0][5].axis('off')
+
+                axes2[1][0].imshow( neuronal_maps_after_STDP[2])
+                axes2[1][0].set_title('Weights after STDP')
+                axes2[1][0].axis('off')
+                axes2[1][1].imshow( neuronal_maps_after_STDP[5])
+                axes2[1][1].axis('off')
+                axes2[1][2].imshow( neuronal_maps_after_STDP[9])
+                axes2[1][2].axis('off')
+                axes2[1][3].imshow( neuronal_maps_after_STDP[11])
+                axes2[1][3].axis('off')
+                axes2[1][4].imshow( neuronal_maps_after_STDP[15])
+                axes2[1][4].axis('off')
+                axes2[1][5].imshow( neuronal_maps_after_STDP[18])
+                axes2[1][5].axis('off')
+       
         return currSpikes
 
    
@@ -240,8 +345,7 @@ class ConvolutionalLayer(Layer):
                
 
 
-    # BEGIN Function borrowed from the paper autors
-    # @jit
+    @jit
     def lateral_inh_CPU(self, S, V, K_inh):
         S_inh = np.ones(S.shape, dtype=S.dtype)
         K = np.ones(K_inh.shape, dtype=K_inh.dtype)
@@ -267,7 +371,6 @@ class ConvolutionalLayer(Layer):
         S = np.multiply( S, S_inh)
         K_inh = np.multiply( K_inh, K)
         return S, K_inh
-    # END Function borrowed from the paper autors
 
 
 

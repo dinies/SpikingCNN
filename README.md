@@ -2,12 +2,53 @@
 Build a spiking convolutional neural network in tensorflow for image recognitioon tasks
 
 
+Instructions on how to run the network. 
+
+Different types of execution are possible:
+
+1) Run directly the classifier with the best dataset and weights obtained
+
+2) Run the entire network with the best weights obtained
+
+3) Run the entire network from scratch
+
+#########################################################################
+
+- Go to "src" folder
+- Write on your terminal:
+
+$  python main.py 1  (if you want to run the execution type 1)
+
+$  python main.py 2  (if you want to run the execution type 2)
+
+$  python main.py 3  (if you want to run the execution type 3)
 
 
 
 
-How to run the code ?
- - tests can be run with the following command: python -m unittest discover -p '\*Test.py' tests/
+
+
+
+Be careful to:
+ - The .sh scripts in the 'scripts' folder could need the execution permission
+   If there are related problems use $ chmod -x script.sh on every script
+ - Additional information about the executions can be found in the 'log' folder inside the csv file 
+ - The main.py is made in such a way that at every execution the logs and other execution related files are cleaned.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

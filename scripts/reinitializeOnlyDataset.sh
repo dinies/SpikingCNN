@@ -27,3 +27,6 @@ cp ../datasets/TestingSet/Motor/* ../datasets/TestingSet/MotorToDo/
 cp ../datasets/TestingSet/Face/* ../datasets/TestingSet/FaceToDo/
 
 
+cp ../datasets/ClassifierSet/best_dataset/* ../datasets/ClassifierSet/
+
+
