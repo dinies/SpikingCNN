@@ -1,0 +1,9 @@
+\frametitle{Introduction}
+
+Spiking Neural Networks communicate through \textit{spikes}, that are discrete events that occur at certain points in time.\\
+\bigskip
+When a neuron reaches a certain potential value, it spikes, so it resets its value.\\
+\bigskip
+This modelling allows us to handle spatio-temporal data,
+that are real-world sensory data.
+

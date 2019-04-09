@@ -23,8 +23,8 @@ class SpikingConvNet(object):
         encoding_t = 15
         self.encoding_t = encoding_t
         self.phase = phase
-        #path = dirname(dirname(realpath(__file__)))
-        path = 'C:/Users/gianl/Documents/Git/SpikingCNN'
+        path = dirname(dirname(realpath(__file__)))
+        #path = 'C:/Users/gianl/Documents/Git/SpikingCNN'
         self.path_to_img_folder = path + '/datasets/'+ phase + 'Set/'
         classifier_dataset_path = path + '/datasets/ClassifierSet/'
         self.classifier_training_dataset_path = classifier_dataset_path +'TrainingData.csv'
@@ -59,11 +59,11 @@ class SpikingConvNet(object):
         self.layers = [
             ConvolutionalLayer(padding, strides_conv,
                 [5,5,1,4],1.1, [1,160,250,1], [1,160,250,4],
-                encoding_t,20,.004,-.0,-.008, stdp_flag ),
+                encoding_t,15,.004,-.0,-.008, stdp_flag ),
             PoolingLayer(padding, [6,6], [7,7], pooling_type, [1,27,42,4]),
             ConvolutionalLayer(padding,strides_conv,
-                [17,17,4,20], 35., [1,27,42,4], [1,27,42,20],
-                encoding_t,30,.002,-.0,-.004, stdp_flag),
+                [17,17,4,20], 25., [1,27,42,4], [1,27,42,20],
+                encoding_t,20,.002,-.0,-.004, stdp_flag),
             PoolingLayer(padding, [5,5], [5,5], pooling_type, [1,6,9,20]),
             ConvolutionalLayer(padding, strides_conv,
                 [5,5,20,20], math.inf , [1,6,9,20], [1,6,9,20],
@@ -247,7 +247,7 @@ class SpikingConvNet(object):
 if __name__ == '__main__':
     start_from_scratch = True
     #start_from_scratch = False
-    number_of_images = 1
+    number_of_images = 10
     phase = "Learning"
     #phase = "Training"
     #phase = "Testing"

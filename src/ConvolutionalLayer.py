@@ -27,15 +27,17 @@ class ConvolutionalLayer(Layer):
         self.stdp_flag = stdp_flag
         self.counter_strenghtened =0
         self.counter_weakened =0
+        self.spiked_counter=0
+        self.inhibited_counter=0
         self.map_deconvolution_indexes = createMapDeconvIndexes(\
                 filter_dim, expected_input_dim, expected_output_dim)
 
-    
+
     def resetStoredData( self):
         self.curr_iteration = 0
         self.spikes_presyn = np.zeros(  self.expected_input_dim +[self.encoding_t])
         self.spikes_postsyn = np.zeros(  self.expected_output_dim +[self.encoding_t])
-        
+
     def resetOldPotentials( self):
         self.oldPotentials = tfe.Variable( np.zeros( self.expected_output_dim ))
 
@@ -63,7 +65,7 @@ class ConvolutionalLayer(Layer):
                 print('outlier negative')
 
         self.weights = weights
-     
+
     def loadWeights(self,path,layer_index):
         self.weights = np.load( path + 'weight_'+ str(layer_index)+ '.npy')
 
@@ -86,7 +88,7 @@ class ConvolutionalLayer(Layer):
                 index = math.floor(w*10)
                 array_counter[index] += 1
         return array_counter
-                        
+
     def getSynapseChangeInfo(self):
         return self.counter_strenghtened, self.counter_weakened
 
@@ -97,7 +99,7 @@ class ConvolutionalLayer(Layer):
         currSpikesNp = np.zeros( self.expected_output_dim)
         newPotentialsNp = tf.math.add( out_conv , self.oldPotentials).numpy()
 
-       
+
         [_, rows, cols, channels] = newPotentialsNp.shape
 
         for row, column, channel in itertools.product(range(rows),range(cols),range(channels)):
@@ -118,7 +120,7 @@ class ConvolutionalLayer(Layer):
 
         if self.stdp_flag:
             self.STDP_learning()
-                    
+
         currSpikes = tfe.Variable( S )
         newPotentials = tfe.Variable( newPotentialsNp )
 
@@ -135,10 +137,10 @@ class ConvolutionalLayer(Layer):
                 out_conv_np = out_conv.numpy()
                 outs = []
                 for k in range( self.expected_output_dim[3]):
-                    out_k = out_conv_np[:,:,:,k].reshape([self.expected_output_dim[1],self.expected_output_dim[2]]) 
+                    out_k = out_conv_np[:,:,:,k].reshape([self.expected_output_dim[1],self.expected_output_dim[2]])
                     outs.append( out_k)
 
-        
+
                 plt.figure( figsize=( 25,8))
                 ax1 = plt.subplot( 121)
                 ax1.imshow( input_slice_r)
@@ -149,10 +151,10 @@ class ConvolutionalLayer(Layer):
 
                 ax3 = plt.subplot( 244)
                 ax3.imshow( outs[1])
-                        
+
                 ax4 = plt.subplot( 247)
                 ax4.imshow( outs[2])
-                           
+
                 ax5 = plt.subplot( 248)
                 ax5.imshow( outs[3])
 
@@ -160,8 +162,8 @@ class ConvolutionalLayer(Layer):
                 spikes_before = []
                 spikes_after= []
                 for k in range( self.expected_output_dim[3]):
-                    spike_b_k = old_spikes[:,:,:,k].reshape([self.expected_output_dim[1],self.expected_output_dim[2]]) 
-                    spike_a_k = S[:,:,:,k].reshape([self.expected_output_dim[1],self.expected_output_dim[2]]) 
+                    spike_b_k = old_spikes[:,:,:,k].reshape([self.expected_output_dim[1],self.expected_output_dim[2]])
+                    spike_a_k = S[:,:,:,k].reshape([self.expected_output_dim[1],self.expected_output_dim[2]])
                     spikes_before.append( spike_b_k)
                     spikes_after.append( spike_a_k)
 
@@ -186,8 +188,8 @@ class ConvolutionalLayer(Layer):
                 neuronal_maps_before_STDP = []
                 neuronal_maps_after_STDP = []
                 for k in range( self.filter_dim[3]):
-                    map_b_k = old_weights[:,:,:,k].reshape([self.filter_dim[0],self.filter_dim[1]]) 
-                    map_a_k = self.weights[:,:,:,k].reshape([self.filter_dim[0],self.filter_dim[1]]) 
+                    map_b_k = old_weights[:,:,:,k].reshape([self.filter_dim[0],self.filter_dim[1]])
+                    map_a_k = self.weights[:,:,:,k].reshape([self.filter_dim[0],self.filter_dim[1]])
                     neuronal_maps_before_STDP.append( map_b_k)
                     neuronal_maps_after_STDP.append( map_a_k)
 
@@ -207,7 +209,7 @@ class ConvolutionalLayer(Layer):
 
         return currSpikes
 
-   
+
     def STDP_learning( self):
         [ _ , rows_out, cols_out, channels_out, _] = self.spikes_postsyn.shape
         channels_in = self.spikes_presyn.shape[3]
@@ -217,7 +219,7 @@ class ConvolutionalLayer(Layer):
         for r_out, c_out, ch_out in itertools.product( range(rows_out),range(cols_out),range(channels_out)):
             current_matches = []
             if self.spikes_postsyn[0,r_out,c_out,ch_out,self.curr_iteration] == 1:
-                for [in_row , in_col , r_w, c_w] in self.map_deconvolution_indexes[str(r_out)+','+str(c_out)] :   
+                for [in_row , in_col , r_w, c_w] in self.map_deconvolution_indexes[str(r_out)+','+str(c_out)] :
                     for ch_in, t_input in itertools.product( range(channels_in),range( self.curr_iteration+1)):
                         presyn_neuron = self.spikes_presyn[0,in_row,in_col,ch_in,t_input]
                         if presyn_neuron == 1:
@@ -228,12 +230,12 @@ class ConvolutionalLayer(Layer):
                         w= self.weights[r_w,c_w,ch_in,ch_out]
                         self.weights[r_w,c_w,ch_in,ch_out] = modifyWeight(w,self.a_plus)
 
-        self.weights += self.a_decay * self.weights * ( 1 - self.weights)       
+        self.weights += self.a_decay * self.weights * ( 1 - self.weights)
 
 
-               
 
 
+    '''
     # BEGIN Function borrowed from the paper autors
     @jit
     def lateral_inh_CPU(self, S, V, K_inh):
@@ -260,7 +262,33 @@ class ConvolutionalLayer(Layer):
         K_inh *= K
         return S, K_inh
     # END Function borrowed from the paper autors
-
+    '''
+    @jit
+    def lateral_inh_CPU(self, S, V, K_inh):
+        S_inh = np.ones(S.shape, dtype=S.dtype)
+        K = np.ones(K_inh.shape, dtype=K_inh.dtype)
+        for i in range(V.shape[1]):
+            for j in range(V.shape[2]):
+                for k in range(V.shape[3]):
+                    flag = False
+                    if S[0,i, j, k] != 1:
+                        continue
+                    if K_inh[i, j] == 0 or K[i,j] == 0:
+                        S_inh[0,i, j, k] = 0
+                        self.inhibited_counter +=1
+                        continue
+                    for kz in range(V.shape[3]):
+                        if S[0,i, j, kz] == 1 and V[0,i, j, k] < V[0,i, j, kz]:
+                            S_inh[0,i, j, k] = 0
+                            self.inhibited_counter +=1
+                            flag = True
+                    if flag:
+                        continue
+                    else:
+                        K[i, j] = 0
+        S = np.multiply( S, S_inh)
+        K_inh = np.multiply( K_inh, K)
+        return S, K_inh
 
 
 
@@ -275,13 +303,13 @@ def createMapDeconvIndexes( filt_dim, input_dim, output_dim ):
         indexes = computeDeconvolutionIndexesSamePaddingOddFilterDim(r,c,filt_dim,input_dim,output_dim)
         key= str(r)+','+str(c)
         map_indexes[key] = indexes
-        
+
     return map_indexes
 
 
 # Given a coordinate of a square of the output layer of a convolution
 # returns a list of quadruples of the form :
-# [ input row, input column, weight row, weight column ] 
+# [ input row, input column, weight row, weight column ]
 # to optimize the code bring this execution at the creation of the class and
 # store all the indexes in a map with [r,c] as keys and the correspondences as values
 def computeDeconvolutionIndexesSamePaddingOddFilterDim(\
@@ -294,16 +322,15 @@ def computeDeconvolutionIndexesSamePaddingOddFilterDim(\
     for r in range( row - offset_r, row + offset_r+1):
         j = 0
         for c in range( column - offset_c, column + offset_c+1):
-            if 0<=r<expected_input_dim[1] and 0<=c<expected_input_dim[2]: 
+            if 0<=r<expected_input_dim[1] and 0<=c<expected_input_dim[2]:
                 indexes_list.append( [ r, c, i, j] )
             j += 1
         i +=1
 
-    return indexes_list 
-    
+    return indexes_list
+
 def modifyWeight( weight, a, n_times = 1):
     w = weight
     for _ in range(n_times):
         w += a * w * ( 1 - w)
     return w
-

@@ -5,6 +5,7 @@ import pandas as pd
 from os.path import dirname, realpath
 from sklearn.svm import SVC, LinearSVC
 from sklearn import linear_model, preprocessing
+from sklearn.neighbors import KNeighborsClassifier
 
 tf.enable_eager_execution()
 
@@ -36,25 +37,13 @@ lin.fit(train_X_scaled, train_y)
 print( "linear model score: \n")
 print(lin.score(test_X_scaled, test_y))
 
-linSVC = LinearSVC(C=9.0)
+linSVC = LinearSVC(C=8.0)
 linSVC.fit(  train_X_scaled, train_y)
 print( "LinearSVC score: \n")
 print( linSVC.score( test_X_scaled, test_y))
-
-
-
-
-
-
-
-
-
 
 
 def input_fun( features, labels, batch_size,repeat_count ):
     dataset = tf.data.Dataset.from_tensor_slices( (dict(features),labels))
     dataset = dataset.shuffle(10).repeat(repeat_count).batch( batch_size)
     return dataset
-
-
-
